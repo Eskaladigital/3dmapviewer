@@ -2,6 +2,31 @@ import React, { useState, useMemo } from 'react'
 import { useStore } from '@/store/useStore'
 import { THEMES } from '@/types'
 
+const MAX_IMAGE_DIMENSION = 1024
+const JPEG_QUALITY = 0.7
+
+function compressImage(dataUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      let { width, height } = img
+      if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+        const ratio = Math.min(MAX_IMAGE_DIMENSION / width, MAX_IMAGE_DIMENSION / height)
+        width = Math.round(width * ratio)
+        height = Math.round(height * ratio)
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY))
+    }
+    img.onerror = () => reject(new Error('Error comprimiendo imagen'))
+    img.src = dataUrl
+  })
+}
+
 const DESIGN_STYLES = [
   'Minimalista', 'Escandinavo', 'Industrial', 'Bohemio', 'Clásico', 'Moderno',
   'Rústico', 'Contemporáneo', 'Mid-century', 'Japónés', 'Tropical', 'Lujo',
@@ -155,8 +180,16 @@ export default function RenderGenerationModal() {
     const images: string[] = []
     let sceneDescription = ''
     try {
-      // Método IMAGEN DIRECTA: envía la imagen a GPT Image Edit (preserva layout)
-      if (method === 'direct' && lastImage) {
+      let compressedImage: string | null = null
+      if (lastImage) {
+        try {
+          compressedImage = await compressImage(lastImage)
+        } catch {
+          compressedImage = lastImage
+        }
+      }
+
+      if (method === 'direct' && compressedImage) {
         const baseDirectives = [
           opts.designStyle && `Design style: ${opts.designStyle}.`,
           opts.furniture && `Furniture style: ${opts.furniture}.`,
@@ -185,35 +218,38 @@ WHAT YOU CAN CHANGE (style only): ${styleDirectives || 'Upgrade to professional 
           const res = await fetch('/api/generate-image-edit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: lastImage, prompt: editPrompt }),
+            body: JSON.stringify({ image: compressedImage, prompt: editPrompt }),
           })
-          const data = await res.json()
+          const text = await res.text()
+          let data: Record<string, unknown>
+          try { data = JSON.parse(text) } catch { data = { error: `Respuesta no JSON: ${text.slice(0, 200)}` } }
           if (!res.ok) {
-            setApiError(data.error || 'Error al generar (¿tienes acceso a GPT Image?)')
+            setApiError((data.error as string) || `Error ${res.status}: ${res.statusText}`)
             return
           }
-          const img = data.images?.[0] || data.image
+          const img = (data.images as string[])?.[0] || (data.image as string)
           if (img) images.push(img)
           setGeneratedImages([...images])
         }
         return
       }
 
-      // Método DALL·E: analizar con Vision + generar con DALL·E
-      if (lastImage) {
+      if (compressedImage) {
         setAnalyzingScene(true)
         const analyzeRes = await fetch('/api/analyze-scene-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: lastImage }),
+          body: JSON.stringify({ image: compressedImage }),
         })
-        const analyzeData = await analyzeRes.json()
+        const text = await analyzeRes.text()
+        let analyzeData: Record<string, unknown>
+        try { analyzeData = JSON.parse(text) } catch { analyzeData = { error: `Respuesta no JSON: ${text.slice(0, 200)}` } }
         setAnalyzingScene(false)
         if (!analyzeRes.ok) {
-          setApiError(analyzeData.error || 'Error al analizar la imagen')
+          setApiError((analyzeData.error as string) || `Error ${analyzeRes.status}: ${analyzeRes.statusText}`)
           return
         }
-        sceneDescription = analyzeData.description || ''
+        sceneDescription = (analyzeData.description as string) || ''
       }
 
       for (let i = 0; i < imageCount; i++) {
@@ -225,12 +261,14 @@ WHAT YOU CAN CHANGE (style only): ${styleDirectives || 'Upgrade to professional 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: promptWithVariation, count: 1 }),
         })
-        const data = await res.json()
+        const text = await res.text()
+        let data: Record<string, unknown>
+        try { data = JSON.parse(text) } catch { data = { error: `Respuesta no JSON: ${text.slice(0, 200)}` } }
         if (!res.ok) {
-          setApiError(data.error || 'Error al generar')
+          setApiError((data.error as string) || `Error ${res.status}: ${res.statusText}`)
           return
         }
-        const img = data.images?.[0] || data.image
+        const img = (data.images as string[])?.[0] || (data.image as string)
         if (img) images.push(img)
         setGeneratedImages([...images])
       }
