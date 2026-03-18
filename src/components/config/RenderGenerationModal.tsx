@@ -211,6 +211,11 @@ export default function RenderGenerationModal() {
 
 Keep the EXACT SAME camera angle, perspective, and composition. The output must look like a real photograph taken from the EXACT SAME viewpoint inside the room.
 
+CRITICAL CONTEXT ABOUT THE SOURCE IMAGE:
+- This is a 3D architectural model. The flat green/dark-green areas visible through windows, doors, or openings represent the EXTERIOR (garden, grass, landscape, outdoors). They are NOT green walls or green paint. Replace them with a realistic outdoor view: garden with grass, trees, sky, natural landscape.
+- The actual interior walls are the surfaces with different colors/materials INSIDE the room. Do NOT paint any wall green unless it was clearly an interior wall with green paint.
+- Windows and openings that show green = exterior view. Render them as real windows showing a beautiful outdoor landscape with vegetation and sky.
+
 Autodesk 3DS Max + V-Ray quality: ultra-realistic material textures, physical lighting, soft shadows, natural reflections, photorealistic finishes.
 
 ABSOLUTE RULES:
@@ -220,6 +225,7 @@ ABSOLUTE RULES:
 4. EXACT SAME ROOM SHAPE — walls, doors, windows identical in position, size and count.
 5. DO NOT INVENT — if something is not visible, do NOT add it.
 6. DO NOT DUPLICATE items.
+7. GREEN AREAS THROUGH OPENINGS = EXTERIOR GARDEN, NOT GREEN WALLS.
 
 STYLE: ${styleDirectives || 'Upgrade to professional modern interior with warm lighting.'}`.trim()
         } else if (viewType === 'topDown') {

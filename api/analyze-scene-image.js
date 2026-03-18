@@ -6,15 +6,21 @@
 
 const PROMPT_FIRST_PERSON = `Esta imagen es una captura 3D desde PRIMERA PERSONA (vista interior a nivel de los ojos) de un proyecto arquitectónico. Objetivo: RENDER HIPERREALISTA tipo estudio de arquitectura (3DS Max + V-Ray).
 
+CONTEXTO CRÍTICO SOBRE LA IMAGEN:
+- Esta es una maqueta 3D. Las zonas planas de color VERDE OSCURO visibles a través de ventanas, puertas o aberturas representan el EXTERIOR (jardín, césped, paisaje). NO son paredes verdes ni pintura verde.
+- Al describir la escena, interpreta esas zonas verdes como "vistas al exterior con jardín/vegetación" y NO como "paredes de color verde".
+- Las paredes interiores reales son las superficies con otros colores/materiales DENTRO de la habitación.
+
 CRÍTICO: La precisión espacial es lo más importante. Describe la posición de cada objeto como si dibujaras un plano desde el punto de vista del observador.
 
 ESTRUCTURA OBLIGATORIA:
 
-1. PUNTO DE VISTA: Desde qué esquina o ángulo se ve la habitación (ej: esquina izquierda mirando hacia la derecha y al fondo).
+1. PUNTO DE VISTA: Desde qué esquina o ángulo se ve la habitación.
 2. LADO IZQUIERDO DE LA IMAGEN: Lista todo lo que está a la izquierda con su posición exacta.
 3. LADO DERECHO DE LA IMAGEN: Lista todo lo que está a la derecha con su posición exacta.
 4. CENTRO / FONDO: Lo que está en el centro y al fondo.
-5. SUELO, TECHO, ILUMINACIÓN: Colores y elementos.
+5. VENTANAS Y ABERTURAS: Describe lo que se ve al exterior (jardín, cielo, paisaje). Las zonas verdes a través de aberturas = exterior.
+6. SUELO, TECHO, ILUMINACIÓN: Colores y elementos.
 
 Para cada elemento indica: posición relativa, color, material. La descripción debe permitir reproducir el espacio con la misma disposición exacta.
 
