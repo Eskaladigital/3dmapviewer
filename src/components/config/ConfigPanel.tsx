@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react'
-import { Sofa, ChefHat, BedDouble, Bath, Lightbulb, LayoutGrid, MousePointer2, Square, DoorOpen, AppWindow, Eraser, Wrench, PaintBucket, Layers, Plus, Trash2, Home, Upload, PenTool, CircleDashed, MoveHorizontal, DivideSquare, Maximize2, Columns, RectangleHorizontal, FoldHorizontal, Armchair, Bed, BedSingle, Tv, Monitor, Refrigerator, Microwave, Droplets, Flame, Snowflake, Wind, Shirt, Box, Coffee, Book, Library, Shield, Umbrella, Archive, Utensils, Music, Dumbbell, Gamepad2, Sprout } from 'lucide-react'
+import { Sofa, ChefHat, BedDouble, Bath, Lightbulb, LayoutGrid, MousePointer2, Square, DoorOpen, AppWindow, Eraser, Wrench, PaintBucket, Layers, Plus, Trash2, Home, Upload, PenTool, CircleDashed, MoveHorizontal, DivideSquare, Maximize2, Columns, RectangleHorizontal, FoldHorizontal, Armchair, Bed, BedSingle, Tv, Monitor, Refrigerator, Microwave, Droplets, Flame, Snowflake, Wind, Shirt, Box, Coffee, Book, Library, Shield, Umbrella, Archive, Utensils, Music, Dumbbell, Gamepad2, Sprout, Briefcase, Store, Stethoscope, Scissors } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { FURNITURE_CATALOG, MATERIALS, STYLE_PRESETS, OPENING_CATALOG, THEMES, MATERIAL_SECTION_LABELS, DEFAULT_SCENE_MATERIALS } from '@/types'
 import type { EditorTool, OpeningCatalogItem, ThemeColors, SceneMaterials, MaterialSlot } from '@/types'
@@ -11,6 +11,10 @@ const CATEGORIES = [
   { id: 'kitchen', label: 'Cocina', icon: <ChefHat size={16} /> },
   { id: 'bedroom', label: 'Dormitorio', icon: <BedDouble size={16} /> },
   { id: 'bathroom', label: 'Baño', icon: <Bath size={16} /> },
+  { id: 'office', label: 'Oficina', icon: <Briefcase size={16} /> },
+  { id: 'gym', label: 'Gimnasio', icon: <Dumbbell size={16} /> },
+  { id: 'retail', label: 'Comercio', icon: <Store size={16} /> },
+  { id: 'health', label: 'Clínica', icon: <Stethoscope size={16} /> },
   { id: 'lighting', label: 'Iluminación', icon: <Lightbulb size={16} /> },
   { id: 'general', label: 'General', icon: <LayoutGrid size={16} /> },
 ]
@@ -140,17 +144,24 @@ const getFurnitureIcon = (type: string, category: string, size = 24) => {
   if (t.includes('radiator') || t.includes('heater')) return <Flame size={size} strokeWidth={1.5} />
   if (t.includes('air_conditioner')) return <Snowflake size={size} strokeWidth={1.5} />
   if (t.includes('piano')) return <Music size={size} strokeWidth={1.5} />
-  if (t.includes('gym') || t.includes('treadmill') || t.includes('bike')) return <Dumbbell size={size} strokeWidth={1.5} />
+  if (t.includes('gym') || t.includes('treadmill') || t.includes('bike') || t.includes('elliptical') || t.includes('weight') || t.includes('dumbbell') || t.includes('pilates')) return <Dumbbell size={size} strokeWidth={1.5} />
   if (t.includes('gaming')) return <Gamepad2 size={size} strokeWidth={1.5} />
   if (t.includes('safe')) return <Shield size={size} strokeWidth={1.5} />
   if (t.includes('umbrella')) return <Umbrella size={size} strokeWidth={1.5} />
   if (t.includes('cabinet') || t.includes('box')) return <Archive size={size} strokeWidth={1.5} />
+  if (t.includes('office') || t.includes('reception') || t.includes('meeting')) return <Briefcase size={size} strokeWidth={1.5} />
+  if (t.includes('retail') || t.includes('display') || t.includes('clothing_rack') || t.includes('cash_register') || t.includes('mannequin')) return <Store size={size} strokeWidth={1.5} />
+  if (t.includes('health') || t.includes('exam_table') || t.includes('medical') || t.includes('iv_pole')) return <Stethoscope size={size} strokeWidth={1.5} />
 
   // Fallbacks por categoría
   if (category === 'living') return <Sofa size={size} strokeWidth={1.5} />
   if (category === 'kitchen') return <ChefHat size={size} strokeWidth={1.5} />
   if (category === 'bedroom') return <BedDouble size={size} strokeWidth={1.5} />
   if (category === 'bathroom') return <Bath size={size} strokeWidth={1.5} />
+  if (category === 'office') return <Briefcase size={size} strokeWidth={1.5} />
+  if (category === 'gym') return <Dumbbell size={size} strokeWidth={1.5} />
+  if (category === 'retail') return <Store size={size} strokeWidth={1.5} />
+  if (category === 'health') return <Stethoscope size={size} strokeWidth={1.5} />
   if (category === 'lighting') return <Lightbulb size={size} strokeWidth={1.5} />
   return <Box size={size} strokeWidth={1.5} />
 }

@@ -979,6 +979,452 @@ const FurnitureMesh = memo(function FurnitureMesh({ item, onSelect, ceilingHeigh
           </group>
         )
 
+      case 'elliptical':
+        return (
+          <group>
+            {/* Base */}
+            <mesh castShadow position={[0, 0.05, 0]}>
+              <boxGeometry args={[w * 0.6, 0.1, d * 0.9]} />
+              {matDark}
+            </mesh>
+            {/* Rueda trasera */}
+            <mesh castShadow position={[0, 0.4, -d * 0.3]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.3, 0.3, 0.15, 16]} />
+              {chromeMat}
+            </mesh>
+            {/* Cuerpo principal */}
+            <mesh castShadow position={[0, h * 0.5, d * 0.3]}>
+              <boxGeometry args={[0.2, h, 0.2]} />
+              {mat}
+            </mesh>
+            {/* Brazos móviles */}
+            <mesh castShadow position={[-w * 0.4, h * 0.6, 0]} rotation={[Math.PI / 8, 0, 0]}>
+              <cylinderGeometry args={[0.03, 0.03, h * 0.8]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[w * 0.4, h * 0.6, 0]} rotation={[-Math.PI / 8, 0, 0]}>
+              <cylinderGeometry args={[0.03, 0.03, h * 0.8]} />
+              {chromeMat}
+            </mesh>
+            {/* Pedales */}
+            <mesh castShadow position={[-w * 0.3, 0.3, 0]}>
+              <boxGeometry args={[0.15, 0.05, 0.4]} />
+              {matDark}
+            </mesh>
+            <mesh castShadow position={[w * 0.3, 0.3, 0]}>
+              <boxGeometry args={[0.15, 0.05, 0.4]} />
+              {matDark}
+            </mesh>
+          </group>
+        )
+
+      case 'weight_bench':
+        return (
+          <group>
+            {/* Banco acolchado */}
+            <mesh castShadow position={[0, h * 0.4, -d * 0.1]}>
+              <boxGeometry args={[w * 0.3, 0.1, d * 0.8]} />
+              {cushionMat}
+            </mesh>
+            {/* Soportes metálicos verticales */}
+            <mesh castShadow position={[-w * 0.35, h / 2, d * 0.3]}>
+              <boxGeometry args={[0.05, h, 0.05]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[w * 0.35, h / 2, d * 0.3]}>
+              <boxGeometry args={[0.05, h, 0.05]} />
+              {chromeMat}
+            </mesh>
+            {/* Barra de pesas */}
+            <mesh castShadow position={[0, h, d * 0.3]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.02, 0.02, w * 0.9]} />
+              {chromeMat}
+            </mesh>
+            {/* Discos de pesas */}
+            {[[-1, '#222'], [1, '#222']].map(([s, c], i) => (
+              <mesh key={i} castShadow position={[(s as number) * (w * 0.4), h, d * 0.3]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.2, 0.2, 0.05, 16]} />
+                <meshStandardMaterial color={c as string} roughness={0.8} />
+              </mesh>
+            ))}
+          </group>
+        )
+
+      case 'dumbbell_rack':
+        return (
+          <group>
+            {/* Soportes laterales (forma A) */}
+            <mesh castShadow position={[-w / 2 + 0.05, h / 2, 0]}>
+              <boxGeometry args={[0.05, h, d]} />
+              {matDark}
+            </mesh>
+            <mesh castShadow position={[w / 2 - 0.05, h / 2, 0]}>
+              <boxGeometry args={[0.05, h, d]} />
+              {matDark}
+            </mesh>
+            {/* Estantes inclinados para mancuernas */}
+            {[0.3, 0.6, 0.9].map((y, i) => (
+              <mesh key={i} castShadow position={[0, h * y, -d * 0.1 + (i * 0.05)]} rotation={[Math.PI / 6, 0, 0]}>
+                <boxGeometry args={[w - 0.1, 0.05, 0.2]} />
+                {chromeMat}
+              </mesh>
+            ))}
+          </group>
+        )
+
+      case 'pilates_reformer':
+        return (
+          <group>
+            {/* Estructura base (madera) */}
+            <mesh castShadow position={[0, h * 0.3, 0]}>
+              <boxGeometry args={[w, 0.1, d]} />
+              {woodDark}
+            </mesh>
+            {/* Rieles metálicos */}
+            <mesh castShadow position={[-w * 0.3, h * 0.4, 0]}>
+              <boxGeometry args={[0.05, 0.05, d * 0.9]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[w * 0.3, h * 0.4, 0]}>
+              <boxGeometry args={[0.05, 0.05, d * 0.9]} />
+              {chromeMat}
+            </mesh>
+            {/* Carro móvil (acolchado) */}
+            <mesh castShadow position={[0, h * 0.45, -d * 0.1]}>
+              <boxGeometry args={[w * 0.7, 0.1, d * 0.4]} />
+              {cushionMat}
+            </mesh>
+            {/* Hombreras */}
+            <mesh castShadow position={[-w * 0.2, h * 0.6, -d * 0.25]}>
+              <boxGeometry args={[0.1, 0.2, 0.1]} />
+              {cushionMat}
+            </mesh>
+            <mesh castShadow position={[w * 0.2, h * 0.6, -d * 0.25]}>
+              <boxGeometry args={[0.1, 0.2, 0.1]} />
+              {cushionMat}
+            </mesh>
+            {/* Barra de pies */}
+            <mesh castShadow position={[0, h * 0.6, d * 0.45]}>
+              <boxGeometry args={[w * 0.8, 0.05, 0.05]} />
+              {chromeMat}
+            </mesh>
+          </group>
+        )
+
+      case 'office_desk':
+        return (
+          <group>
+            <mesh castShadow position={[0, h - 0.02, 0]}>
+              <boxGeometry args={[w, 0.04, d]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[-w / 2 + 0.05, h / 2, 0]}>
+              <boxGeometry args={[0.04, h - 0.04, d - 0.1]} />
+              {matDark}
+            </mesh>
+            <mesh castShadow position={[w / 2 - 0.05, h / 2, 0]}>
+              <boxGeometry args={[0.04, h - 0.04, d - 0.1]} />
+              {matDark}
+            </mesh>
+            {/* Faldón frontal */}
+            <mesh castShadow position={[0, h * 0.6, d / 2 - 0.1]}>
+              <boxGeometry args={[w - 0.1, h * 0.5, 0.02]} />
+              {matDark}
+            </mesh>
+          </group>
+        )
+
+      case 'office_chair':
+        return (
+          <group>
+            {/* Base de estrella */}
+            {[0, 1, 2, 3, 4].map(i => (
+              <mesh key={i} castShadow position={[0, 0.1, 0]} rotation={[0, (i * Math.PI * 2) / 5, 0]}>
+                <boxGeometry args={[0.05, 0.05, d * 0.4]} />
+                {chromeMat}
+              </mesh>
+            ))}
+            {/* Pistón central */}
+            <mesh castShadow position={[0, 0.3, 0]}>
+              <cylinderGeometry args={[0.03, 0.03, 0.4]} />
+              {chromeMat}
+            </mesh>
+            {/* Asiento */}
+            <mesh castShadow position={[0, 0.5, 0]}>
+              <boxGeometry args={[w * 0.8, 0.1, d * 0.8]} />
+              {cushionMat}
+            </mesh>
+            {/* Respaldo ergonómico */}
+            <mesh castShadow position={[0, h * 0.7, -d * 0.35]}>
+              <boxGeometry args={[w * 0.7, h * 0.5, 0.08]} />
+              {cushionMat}
+            </mesh>
+            {/* Reposabrazos */}
+            <mesh castShadow position={[-w * 0.35, 0.7, 0]}>
+              <boxGeometry args={[0.05, 0.05, d * 0.5]} />
+              {matDark}
+            </mesh>
+            <mesh castShadow position={[w * 0.35, 0.7, 0]}>
+              <boxGeometry args={[0.05, 0.05, d * 0.5]} />
+              {matDark}
+            </mesh>
+          </group>
+        )
+
+      case 'reception_desk':
+        return (
+          <group>
+            {/* Cuerpo principal alto */}
+            <mesh castShadow position={[0, h / 2, d * 0.2]}>
+              <boxGeometry args={[w, h, d * 0.6]} />
+              {mat}
+            </mesh>
+            {/* Encimera alta (para clientes) */}
+            <mesh castShadow position={[0, h, d * 0.2]}>
+              <boxGeometry args={[w * 1.05, 0.05, d * 0.7]} />
+              {matDark}
+            </mesh>
+            {/* Encimera de trabajo interna baja */}
+            <mesh castShadow position={[0, 0.75, -d * 0.2]}>
+              <boxGeometry args={[w * 0.9, 0.05, d * 0.4]} />
+              {matDark}
+            </mesh>
+            {/* Laterales */}
+            <mesh castShadow position={[-w / 2 + 0.05, h / 2, 0]}>
+              <boxGeometry args={[0.1, h, d]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[w / 2 - 0.05, h / 2, 0]}>
+              <boxGeometry args={[0.1, h, d]} />
+              {mat}
+            </mesh>
+          </group>
+        )
+
+      case 'meeting_table':
+        return (
+          <group>
+            <mesh castShadow position={[0, h - 0.02, 0]}>
+              <boxGeometry args={[w, 0.04, d]} />
+              {mat}
+            </mesh>
+            {/* Patas centrales sólidas */}
+            <mesh castShadow position={[-w * 0.25, h / 2, 0]}>
+              <boxGeometry args={[0.4, h - 0.04, d * 0.4]} />
+              {matDark}
+            </mesh>
+            <mesh castShadow position={[w * 0.25, h / 2, 0]}>
+              <boxGeometry args={[0.4, h - 0.04, d * 0.4]} />
+              {matDark}
+            </mesh>
+          </group>
+        )
+
+      case 'display_shelf':
+        return (
+          <group>
+            {/* Estructura lateral */}
+            <mesh castShadow position={[-w / 2 + 0.02, h / 2, 0]}>
+              <boxGeometry args={[0.04, h, d]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[w / 2 - 0.02, h / 2, 0]}>
+              <boxGeometry args={[0.04, h, d]} />
+              {mat}
+            </mesh>
+            {/* Estantes */}
+            {[0.1, 0.35, 0.6, 0.85].map((y, i) => (
+              <mesh key={i} castShadow position={[0, h * y, 0]}>
+                <boxGeometry args={[w, 0.02, d]} />
+                {mat}
+              </mesh>
+            ))}
+            {/* Fondo opcional cerrado */}
+            <mesh castShadow position={[0, h / 2, d / 2 - 0.02]}>
+              <boxGeometry args={[w, h, 0.04]} />
+              {matDark}
+            </mesh>
+          </group>
+        )
+
+      case 'clothing_rack':
+        return (
+          <group>
+            {/* Patas horizontales inferiores (T invertida) */}
+            <mesh castShadow position={[-w / 2 + 0.1, 0.05, 0]}>
+              <boxGeometry args={[0.05, 0.05, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[w / 2 - 0.1, 0.05, 0]}>
+              <boxGeometry args={[0.05, 0.05, d]} />
+              {chromeMat}
+            </mesh>
+            {/* Postes verticales */}
+            <mesh castShadow position={[-w / 2 + 0.1, h / 2, 0]}>
+              <cylinderGeometry args={[0.02, 0.02, h]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[w / 2 - 0.1, h / 2, 0]}>
+              <cylinderGeometry args={[0.02, 0.02, h]} />
+              {chromeMat}
+            </mesh>
+            {/* Barra superior colgador */}
+            <mesh castShadow position={[0, h - 0.05, 0]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.02, 0.02, w]} />
+              {chromeMat}
+            </mesh>
+            {/* Algunas perchas simuladas */}
+            {[-0.3, -0.1, 0.1, 0.3].map((x, i) => (
+              <mesh key={i} castShadow position={[x * w, h - 0.2, 0]}>
+                <boxGeometry args={[0.02, 0.3, 0.3]} />
+                {mat}
+              </mesh>
+            ))}
+          </group>
+        )
+
+      case 'cash_register_counter':
+        return (
+          <group>
+            {/* Mostrador */}
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {mat}
+            </mesh>
+            {/* Encimera superior (cristal o color solido) */}
+            <mesh castShadow position={[0, h + 0.02, 0]}>
+              <boxGeometry args={[w + 0.05, 0.04, d + 0.05]} />
+              {matDark}
+            </mesh>
+            {/* Caja registradora / TPV */}
+            <mesh castShadow position={[w * 0.2, h + 0.15, d * 0.1]}>
+              <boxGeometry args={[0.3, 0.2, 0.3]} />
+              <meshStandardMaterial color="#222" />
+            </mesh>
+            {/* Pantalla TPV */}
+            <mesh castShadow position={[w * 0.2, h + 0.3, d * 0.1]} rotation={[Math.PI / 6, 0, 0]}>
+              <boxGeometry args={[0.35, 0.25, 0.05]} />
+              <meshStandardMaterial color="#111" />
+            </mesh>
+          </group>
+        )
+
+      case 'mannequin':
+        return (
+          <group>
+            {/* Base */}
+            <mesh castShadow position={[0, 0.02, 0]}>
+              <cylinderGeometry args={[0.2, 0.2, 0.04, 32]} />
+              {chromeMat}
+            </mesh>
+            {/* Palo central */}
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <cylinderGeometry args={[0.02, 0.02, h]} />
+              {chromeMat}
+            </mesh>
+            {/* Torso */}
+            <mesh castShadow position={[0, h * 0.75, 0]}>
+              <cylinderGeometry args={[0.15, 0.1, 0.6]} />
+              <meshStandardMaterial color="#F5F5DC" roughness={0.9} />
+            </mesh>
+          </group>
+        )
+
+      case 'exam_table':
+        return (
+          <group>
+            {/* Patas metálicas */}
+            {[[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([lx, lz], i) => (
+              <mesh key={i} castShadow position={[lx * (w / 2 - 0.05), h / 2, lz * (d / 2 - 0.05)]}>
+                <cylinderGeometry args={[0.03, 0.03, h]} />
+                {chromeMat}
+              </mesh>
+            ))}
+            {/* Base de cama */}
+            <mesh castShadow position={[0, h - 0.1, 0]}>
+              <boxGeometry args={[w, 0.05, d]} />
+              {chromeMat}
+            </mesh>
+            {/* Colchón principal */}
+            <mesh castShadow position={[0, h, d * 0.15]}>
+              <boxGeometry args={[w, 0.1, d * 0.7]} />
+              {cushionMat}
+            </mesh>
+            {/* Respaldo elevado */}
+            <mesh castShadow position={[0, h + 0.1, -d * 0.35]} rotation={[Math.PI / 8, 0, 0]}>
+              <boxGeometry args={[w, 0.1, d * 0.3]} />
+              {cushionMat}
+            </mesh>
+            {/* Rollo de papel */}
+            <mesh castShadow position={[0, h - 0.05, -d / 2 - 0.05]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.06, 0.06, w * 0.8]} />
+              <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+            </mesh>
+          </group>
+        )
+
+      case 'medical_screen':
+        return (
+          <group>
+            {/* 3 paneles */}
+            {[-1, 0, 1].map((pos, i) => (
+              <group key={i} position={[pos * (w / 3), 0, pos === 0 ? 0 : d * 0.2]} rotation={[0, pos * (Math.PI / 6), 0]}>
+                {/* Marco metálico */}
+                <mesh castShadow position={[0, h / 2, 0]}>
+                  <boxGeometry args={[w / 3 - 0.02, h, 0.04]} />
+                  {chromeMat}
+                </mesh>
+                {/* Tela */}
+                <mesh castShadow position={[0, h / 2, 0]}>
+                  <boxGeometry args={[w / 3 - 0.06, h - 0.2, 0.05]} />
+                  {mat}
+                </mesh>
+                {/* Ruedas */}
+                <mesh castShadow position={[-w / 6 + 0.05, 0.05, 0]}>
+                  <sphereGeometry args={[0.05]} />
+                  <meshStandardMaterial color="#222" />
+                </mesh>
+                <mesh castShadow position={[w / 6 - 0.05, 0.05, 0]}>
+                  <sphereGeometry args={[0.05]} />
+                  <meshStandardMaterial color="#222" />
+                </mesh>
+              </group>
+            ))}
+          </group>
+        )
+
+      case 'iv_pole':
+        return (
+          <group>
+            {/* Base estrella */}
+            {[0, 1, 2, 3, 4].map(i => (
+              <mesh key={i} castShadow position={[0, 0.05, 0]} rotation={[0, (i * Math.PI * 2) / 5, 0]}>
+                <boxGeometry args={[0.03, 0.03, d * 0.8]} />
+                {chromeMat}
+              </mesh>
+            ))}
+            {/* Palo central ajustable */}
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <cylinderGeometry args={[0.015, 0.025, h]} />
+              {chromeMat}
+            </mesh>
+            {/* Ganchos superiores */}
+            <mesh castShadow position={[0, h, 0]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.01, 0.01, w * 0.6]} />
+              {chromeMat}
+            </mesh>
+            {/* Bolsas de suero simuladas */}
+            <mesh castShadow position={[-w * 0.2, h - 0.15, 0]}>
+              <boxGeometry args={[0.1, 0.2, 0.05]} />
+              <meshPhysicalMaterial color="#E0F0FF" transmission={0.9} opacity={0.6} transparent roughness={0.1} />
+            </mesh>
+            <mesh castShadow position={[w * 0.2, h - 0.15, 0]}>
+              <boxGeometry args={[0.1, 0.2, 0.05]} />
+              <meshPhysicalMaterial color="#E0F0FF" transmission={0.9} opacity={0.6} transparent roughness={0.1} />
+            </mesh>
+          </group>
+        )
+
       case 'gaming_desk':
         return (
           <group>

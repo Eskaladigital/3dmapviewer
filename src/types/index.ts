@@ -347,11 +347,34 @@ export const FURNITURE_CATALOG: FurnitureCatalogItem[] = [
   { type: 'umbrella_stand', category: 'general', label: 'Paragüero', icon: '☂️', width: 0.25, depth: 0.25, height: 0.6, defaultColor: '#2F2F2F', defaultMaterial: 'metal' },
   { type: 'safe', category: 'general', label: 'Caja fuerte', icon: '🔒', width: 0.4, depth: 0.35, height: 0.5, defaultColor: '#4a4a4a', defaultMaterial: 'metal' },
   { type: 'tv_wall', category: 'general', label: 'Televisor mural', icon: '📺', width: 1.2, depth: 0.08, height: 0.7, defaultColor: '#1a1a1a', defaultMaterial: 'metal' },
-  { type: 'file_cabinet', category: 'general', label: 'Archivador', icon: '📁', width: 0.45, depth: 0.5, height: 0.7, defaultColor: '#2F2F2F', defaultMaterial: 'metal' },
-  { type: 'whiteboard', category: 'general', label: 'Pizarra', icon: '📋', width: 1.2, depth: 0.04, height: 0.9, defaultColor: '#F5F5F5', defaultMaterial: 'metal' },
-  { type: 'gym_treadmill', category: 'general', label: 'Cinta de correr', icon: '🏃', width: 0.8, depth: 1.8, height: 1.4, defaultColor: '#1a1a1a', defaultMaterial: 'metal' },
-  { type: 'gym_bike', category: 'general', label: 'Bicicleta estática', icon: '🚴', width: 0.6, depth: 1.2, height: 1.2, defaultColor: '#2a2a2a', defaultMaterial: 'metal' },
+  { type: 'file_cabinet', category: 'office', label: 'Archivador', icon: '📁', width: 0.45, depth: 0.5, height: 0.7, defaultColor: '#2F2F2F', defaultMaterial: 'metal' },
+  { type: 'whiteboard', category: 'office', label: 'Pizarra', icon: '📋', width: 1.2, depth: 0.04, height: 0.9, defaultColor: '#F5F5F5', defaultMaterial: 'metal' },
+  { type: 'gym_treadmill', category: 'gym', label: 'Cinta de correr', icon: '🏃', width: 0.8, depth: 1.8, height: 1.4, defaultColor: '#1a1a1a', defaultMaterial: 'metal' },
+  { type: 'gym_bike', category: 'gym', label: 'Bicicleta estática', icon: '🚴', width: 0.6, depth: 1.2, height: 1.2, defaultColor: '#2a2a2a', defaultMaterial: 'metal' },
   { type: 'hot_tub', category: 'bathroom', label: 'Jacuzzi / Spa', icon: '🛁', width: 2.0, depth: 2.0, height: 0.8, defaultColor: '#FFFFFF', defaultMaterial: 'ceramic' },
+
+  // ─── Oficina ───
+  { type: 'office_desk', category: 'office', label: 'Mesa de oficina', icon: '🖥️', width: 1.6, depth: 0.8, height: 0.75, defaultColor: '#F5F5F5', defaultMaterial: 'wood' },
+  { type: 'office_chair', category: 'office', label: 'Silla ergonómica', icon: '🪑', width: 0.65, depth: 0.65, height: 1.1, defaultColor: '#1A1A1A', defaultMaterial: 'fabric' },
+  { type: 'reception_desk', category: 'office', label: 'Mostrador de recepción', icon: '🛎️', width: 2.4, depth: 0.8, height: 1.1, defaultColor: '#D2B48C', defaultMaterial: 'wood' },
+  { type: 'meeting_table', category: 'office', label: 'Mesa de reuniones', icon: '🔲', width: 2.4, depth: 1.2, height: 0.75, defaultColor: '#C4A574', defaultMaterial: 'wood' },
+
+  // ─── Gimnasio (Adicionales) ───
+  { type: 'elliptical', category: 'gym', label: 'Elíptica', icon: '🏃', width: 0.7, depth: 1.6, height: 1.6, defaultColor: '#1a1a1a', defaultMaterial: 'metal' },
+  { type: 'weight_bench', category: 'gym', label: 'Banco de pesas', icon: '🏋️', width: 1.2, depth: 1.4, height: 1.2, defaultColor: '#111111', defaultMaterial: 'metal' },
+  { type: 'dumbbell_rack', category: 'gym', label: 'Mancuernero', icon: '🏋️', width: 1.5, depth: 0.5, height: 0.8, defaultColor: '#2a2a2a', defaultMaterial: 'metal' },
+  { type: 'pilates_reformer', category: 'gym', label: 'Pilates Reformer', icon: '🧘', width: 0.7, depth: 2.4, height: 0.4, defaultColor: '#E8DCC8', defaultMaterial: 'wood' },
+
+  // ─── Comercio (Retail) ───
+  { type: 'display_shelf', category: 'retail', label: 'Estantería comercial', icon: '🛒', width: 1.2, depth: 0.5, height: 2.0, defaultColor: '#F5F5F5', defaultMaterial: 'metal' },
+  { type: 'clothing_rack', category: 'retail', label: 'Perchero comercial', icon: '👕', width: 1.5, depth: 0.5, height: 1.6, defaultColor: '#C0C0C0', defaultMaterial: 'metal' },
+  { type: 'cash_register_counter', category: 'retail', label: 'Mostrador de caja', icon: '💰', width: 1.8, depth: 0.6, height: 0.9, defaultColor: '#E8E8E8', defaultMaterial: 'wood' },
+  { type: 'mannequin', category: 'retail', label: 'Maniquí', icon: '🧍', width: 0.5, depth: 0.5, height: 1.8, defaultColor: '#FFFFFF', defaultMaterial: 'organic' },
+
+  // ─── Clínica / Hospital ───
+  { type: 'exam_table', category: 'health', label: 'Camilla de exploración', icon: '🛏️', width: 0.7, depth: 1.9, height: 0.8, defaultColor: '#D4E8F0', defaultMaterial: 'fabric' },
+  { type: 'medical_screen', category: 'health', label: 'Biombo médico', icon: '🪟', width: 1.8, depth: 0.4, height: 1.8, defaultColor: '#F0F8FF', defaultMaterial: 'fabric' },
+  { type: 'iv_pole', category: 'health', label: 'Palo de suero (Gotero)', icon: '⚕️', width: 0.5, depth: 0.5, height: 2.1, defaultColor: '#C0C0C0', defaultMaterial: 'metal' },
 ]
 
 export const ROOM_TYPES = [
