@@ -661,6 +661,11 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
       }
       ctx.closePath()
       ctx.fill()
+      
+      // Añadir un borde sutil interior al cuarto para darle un acabado premium
+      ctx.strokeStyle = theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.06)'
+      ctx.lineWidth = 6
+      ctx.stroke()
 
       // Room area label
       let area = 0
@@ -673,31 +678,53 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
       const rcx = room.reduce((s, p) => s + p.x, 0) / room.length
       const rcy = room.reduce((s, p) => s + p.y, 0) / room.length
 
-      const fontSize = Math.max(11, Math.min(16, 14 / editor.zoom))
-      ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`
+      const fontSize = Math.max(10, Math.min(14, 14 / editor.zoom))
+      const titleSize = fontSize * 1.1
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      const label = `${area.toFixed(1)} m²`
-      const metrics = ctx.measureText(label)
+      
+      const titleLabel = `ZONA ${idx + 1}`
+      const areaLabel = `${area.toFixed(1)} m²`
+      
+      ctx.font = `bold ${titleSize}px Inter, system-ui, sans-serif`
+      const titleMetrics = ctx.measureText(titleLabel)
+      ctx.font = `500 ${fontSize}px Inter, system-ui, sans-serif`
+      const areaMetrics = ctx.measureText(areaLabel)
+      
+      const maxWidth = Math.max(titleMetrics.width, areaMetrics.width)
       const px = rcx * SCALE
       const py = rcy * SCALE
 
       // Background pill
-      const pw = metrics.width + 12
-      const ph = fontSize + 8
-      ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.92)'
+      const pw = maxWidth + 20
+      const ph = titleSize + fontSize + 16
+      ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.95)'
       ctx.beginPath()
-      const r = ph / 2
+      const r = 8
       ctx.moveTo(px - pw / 2 + r, py - ph / 2)
       ctx.lineTo(px + pw / 2 - r, py - ph / 2)
-      ctx.arc(px + pw / 2 - r, py, r, -Math.PI / 2, Math.PI / 2)
+      ctx.arc(px + pw / 2 - r, py - ph / 2 + r, r, -Math.PI / 2, 0)
+      ctx.lineTo(px + pw / 2, py + ph / 2 - r)
+      ctx.arc(px + pw / 2 - r, py + ph / 2 - r, r, 0, Math.PI / 2)
       ctx.lineTo(px - pw / 2 + r, py + ph / 2)
-      ctx.arc(px - pw / 2 + r, py, r, Math.PI / 2, -Math.PI / 2)
+      ctx.arc(px - pw / 2 + r, py + ph / 2 - r, r, Math.PI / 2, Math.PI)
+      ctx.lineTo(px - pw / 2, py - ph / 2 + r)
+      ctx.arc(px - pw / 2 + r, py - ph / 2 + r, r, Math.PI, -Math.PI / 2)
       ctx.closePath()
       ctx.fill()
+      
+      // Sutil borde para el pill
+      ctx.strokeStyle = theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.08)'
+      ctx.lineWidth = 1
+      ctx.stroke()
 
-      ctx.fillStyle = tc.canvasText
-      ctx.fillText(label, px, py)
+      ctx.fillStyle = '#111'
+      ctx.font = `800 ${titleSize}px "DM Sans", sans-serif`
+      ctx.fillText(titleLabel, px, py - fontSize / 2 - 2)
+      
+      ctx.fillStyle = '#666'
+      ctx.font = `600 ${fontSize}px "DM Sans", sans-serif`
+      ctx.fillText(areaLabel, px, py + titleSize / 2 + 2)
       ctx.restore()
     })
 
@@ -911,38 +938,99 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
         const dirY = dy / len
 
         if (opening.type === 'door') {
-          ctx.strokeStyle = isEraseHoverOp ? '#EF5B5B' : isSelected ? '#5B8DEF' : '#5BE0A0'
-          ctx.lineWidth = isSelected ? 4 : 3
-          ctx.beginPath()
-          ctx.moveTo(px - dirX * halfW, py - dirY * halfW)
-          ctx.lineTo(px + dirX * halfW, py + dirY * halfW)
-          ctx.stroke()
-          // Arc
-          ctx.strokeStyle = isSelected ? '#5B8DEF88' : '#5BE0A044'
-          ctx.lineWidth = 1
-          let angle = Math.atan2(dirY, dirX)
-          if (opening.flip) angle += Math.PI
+          // Si es un arco, solo dibujamos un borde punteado sutil para indicar el paso
+          if (opening.subtype === 'arch') {
+            ctx.strokeStyle = isSelected ? '#5B8DEF' : (theme === 'dark' ? '#8890a0' : '#8890a0')
+            ctx.lineWidth = 1
+            ctx.setLineDash([4, 4])
+            ctx.beginPath()
+            ctx.moveTo(px - dirX * halfW, py - dirY * halfW)
+            ctx.lineTo(px + dirX * halfW, py + dirY * halfW)
+            ctx.stroke()
+            ctx.setLineDash([])
+            return // No dibujar hoja de puerta ni arco
+          }
+
+          const dir = opening.openDirection === 'right' ? 1 : -1
+          const flipY = opening.flip ? -1 : 1
           
-          const openPct = 0.3
-          const arcAngle = (Math.PI / 2) * openPct
-          const dir = opening.openDirection === 'right' ? -1 : 1
+          // Vector normal a la pared (hacia donde abre la puerta)
+          const normX = -dirY * flipY
+          const normY = dirX * flipY
+
+          // Hinge (Bisagra)
+          const hingeX = px - dirX * halfW * dir
+          const hingeY = py - dirY * halfW * dir
+          
+          // Tip (Punta de la puerta abierta 90 grados)
+          const tipX = hingeX + normX * opening.width * SCALE
+          const tipY = hingeY + normY * opening.width * SCALE
+
+          ctx.strokeStyle = isEraseHoverOp ? '#EF5B5B' : isSelected ? '#5B8DEF' : (theme === 'dark' ? '#ccd' : '#333')
+          ctx.lineWidth = isSelected ? 3 : 2
+          
           if (opening.subtype === 'double' || opening.subtype === 'french') {
+            const h1X = px - dirX * halfW
+            const h1Y = py - dirY * halfW
+            const h2X = px + dirX * halfW
+            const h2Y = py + dirY * halfW
+            const t1X = h1X + normX * halfW
+            const t1Y = h1Y + normY * halfW
+            const t2X = h2X + normX * halfW
+            const t2Y = h2Y + normY * halfW
+            
+            // Hojas
+            ctx.beginPath(); ctx.moveTo(h1X, h1Y); ctx.lineTo(t1X, t1Y); ctx.stroke()
+            ctx.beginPath(); ctx.moveTo(h2X, h2Y); ctx.lineTo(t2X, t2Y); ctx.stroke()
+            
+            // Arcos
+            ctx.lineWidth = 1
+            ctx.strokeStyle = isSelected ? '#5B8DEF88' : (theme === 'dark' ? '#666' : '#999')
+            let ang1 = Math.atan2(dirY, dirX)
+            let ang2 = ang1 + Math.PI
+            if (opening.flip) { ang1 += Math.PI; ang2 += Math.PI }
             ctx.beginPath()
-            ctx.arc(px - dirX * halfW, py - dirY * halfW, opening.width * SCALE / 2, angle, angle - arcAngle, true)
+            ctx.arc(h1X, h1Y, halfW, ang1, ang1 + Math.PI/2 * flipY, flipY < 0)
             ctx.stroke()
             ctx.beginPath()
-            ctx.arc(px + dirX * halfW, py + dirY * halfW, opening.width * SCALE / 2, angle - Math.PI, angle - Math.PI + arcAngle, false)
+            ctx.arc(h2X, h2Y, halfW, ang2, ang2 - Math.PI/2 * flipY, flipY > 0)
             ctx.stroke()
+            
           } else if (opening.subtype === 'sliding' || opening.subtype === 'pocket' || opening.subtype === 'pocket_pladur') {
+             // Puerta corredera: dos paneles paralelos
              ctx.beginPath()
-             ctx.moveTo(px - dirX * halfW - dirY * 4, py - dirY * halfW + dirX * 4)
-             ctx.lineTo(px + dirX * halfW - dirY * 4, py + dirY * halfW + dirX * 4)
+             ctx.moveTo(px - dirX * halfW - normX * 3, py - dirY * halfW - normY * 3)
+             ctx.lineTo(px - normX * 3, py - normY * 3)
              ctx.stroke()
-          } else {
-             const hingeX = dir > 0 ? px - dirX * halfW : px + dirX * halfW
-             const hingeY = dir > 0 ? py - dirY * halfW : py + dirY * halfW
              ctx.beginPath()
-             ctx.arc(hingeX, hingeY, opening.width * SCALE, angle, angle - dir * arcAngle, dir < 0)
+             ctx.moveTo(px, py + normY * 3)
+             ctx.lineTo(px + dirX * halfW, py + normY * 3)
+             ctx.stroke()
+          } else if (opening.subtype === 'bifold') {
+             // Plegable
+             const midX = px - dirX * halfW * dir + dirX * halfW * 0.5 * -dir + normX * halfW * 0.8
+             const midY = py - dirY * halfW * dir + dirY * halfW * 0.5 * -dir + normY * halfW * 0.8
+             const endX = px + dirX * halfW * 0.2 * dir
+             const endY = py + dirY * halfW * 0.2 * dir
+             ctx.beginPath(); ctx.moveTo(hingeX, hingeY); ctx.lineTo(midX, midY); ctx.lineTo(endX, endY); ctx.stroke()
+          } else {
+             // Puerta simple normal
+             // Hoja
+             ctx.beginPath()
+             ctx.moveTo(hingeX, hingeY)
+             ctx.lineTo(tipX, tipY)
+             ctx.stroke()
+             
+             // Arco
+             ctx.lineWidth = 1
+             ctx.strokeStyle = isSelected ? '#5B8DEF88' : (theme === 'dark' ? '#666' : '#999')
+             let baseAng = Math.atan2(dirY, dirX)
+             if (dir > 0) baseAng += Math.PI
+             // Arc drawing can be tricky with signs, use arc to draw quarter circle
+             ctx.beginPath()
+             const startAng = baseAng
+             const endAng = baseAng + Math.PI/2 * flipY * dir
+             ctx.arc(hingeX, hingeY, opening.width * SCALE, startAng, endAng, flipY * dir < 0)
              ctx.stroke()
           }
         } else {
