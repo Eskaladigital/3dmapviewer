@@ -179,7 +179,70 @@ function findRooms2D(walls: Wall[]): Point[][] {
 
   const adj = new Map<string, { x: number; y: number; neighbors: string[] }>()
 
-  for (const w of walls) {
+  // 1. Añadimos primero todas las paredes originales a una lista y sus extremos a un conjunto de nodos
+  let currentWalls = [...walls]
+  let hasIntersections = true
+  
+  // 2. Resolvemos intersecciones repetidamente hasta que no haya cruces sin nodo
+  // (Este enfoque divide las paredes que se cruzan en T o en X)
+  let loopCount = 0
+  while (hasIntersections && loopCount++ < 5) {
+    hasIntersections = false
+    const newWalls: {start: Point; end: Point}[] = []
+    
+    for (let i = 0; i < currentWalls.length; i++) {
+      const w = currentWalls[i]
+      let splitPoint: Point | null = null
+      
+      // Buscar si algún nodo de otra pared interseca con esta pared
+      for (let j = 0; j < currentWalls.length; j++) {
+        if (i === j) continue
+        const ow = currentWalls[j]
+        
+        for (const pt of [ow.start, ow.end]) {
+          // Ignorar si ya coinciden en los extremos
+          if ((Math.abs(pt.x - w.start.x) < eps && Math.abs(pt.y - w.start.y) < eps) ||
+              (Math.abs(pt.x - w.end.x) < eps && Math.abs(pt.y - w.end.y) < eps)) {
+            continue
+          }
+          
+          // Distancia de pt a segmento w
+          const l2 = (w.start.x - w.end.x)**2 + (w.start.y - w.end.y)**2
+          if (l2 === 0) continue
+          
+          let t = ((pt.x - w.start.x) * (w.end.x - w.start.x) + (pt.y - w.start.y) * (w.end.y - w.start.y)) / l2
+          // Si el punto cae dentro del segmento (y no en los bordes)
+          if (t > 0.01 && t < 0.99) {
+            const projX = w.start.x + t * (w.end.x - w.start.x)
+            const projY = w.start.y + t * (w.end.y - w.start.y)
+            const dist = Math.sqrt((pt.x - projX)**2 + (pt.y - projY)**2)
+            
+            if (dist < eps * 3) {
+              splitPoint = { x: projX, y: projY }
+              break
+            }
+          }
+        }
+        if (splitPoint) break
+      }
+      
+      if (splitPoint) {
+        // Dividir la pared en dos
+        newWalls.push({ start: w.start, end: splitPoint })
+        newWalls.push({ start: splitPoint, end: w.end })
+        hasIntersections = true
+      } else {
+        newWalls.push(w)
+      }
+    }
+    
+    if (hasIntersections) {
+      currentWalls = newWalls
+    }
+  }
+
+  // 3. Llenar matriz de adyacencia
+  for (const w of currentWalls) {
     const ks = k(w.start.x, w.start.y)
     const ke = k(w.end.x, w.end.y)
     if (ks === ke) continue
@@ -214,7 +277,7 @@ function findRooms2D(walls: Wall[]): Point[][] {
       let currK = firstN
       let valid = true
 
-      for (let step = 0; step < 50; step++) {
+      for (let step = 0; step < 100; step++) {
         chain.push(currK)
         used.add(ek(prevK, currK))
         if (currK === startK) break
@@ -239,15 +302,49 @@ function findRooms2D(walls: Wall[]): Point[][] {
         currK = bestK
       }
 
+      // Evitamos ciclos degenerados y áreas diminutas
       if (!valid || chain.length < 4 || chain[chain.length - 1] !== startK) continue
 
       const poly = chain.slice(0, -1).map(kk => adj.get(kk)!)
+      
+      // Chequear si el polígono se interseca a sí mismo (recorrido en forma de 8)
+      let isSelfIntersecting = false
+      for (let i = 0; i < poly.length; i++) {
+        const p1 = poly[i]
+        const p2 = poly[(i + 1) % poly.length]
+        for (let j = i + 2; j < poly.length; j++) {
+          if (i === 0 && j === poly.length - 1) continue // lados adyacentes no cuentan
+          const p3 = poly[j]
+          const p4 = poly[(j + 1) % poly.length]
+          
+          // Test rápido de bounding box
+          if (Math.max(p1.x, p2.x) < Math.min(p3.x, p4.x) || Math.min(p1.x, p2.x) > Math.max(p3.x, p4.x) ||
+              Math.max(p1.y, p2.y) < Math.min(p3.y, p4.y) || Math.min(p1.y, p2.y) > Math.max(p3.y, p4.y)) {
+            continue
+          }
+          
+          // Intersection matemática
+          const denom = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y)
+          if (Math.abs(denom) < 0.001) continue
+          const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denom
+          const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denom
+          if (ua > 0.01 && ua < 0.99 && ub > 0.01 && ub < 0.99) {
+            isSelfIntersecting = true
+            break
+          }
+        }
+        if (isSelfIntersecting) break
+      }
+      
+      if (isSelfIntersecting) continue
+
       let area = 0
       for (let i = 0; i < poly.length; i++) {
         const j = (i + 1) % poly.length
         area += poly[i].x * poly[j].y - poly[j].x * poly[i].y
       }
-      if (area <= 0.05 || Math.abs(area / 2) > 200) continue
+      // Áreas negativas significan que trazó el perímetro exterior de todo el edificio. Las descartamos.
+      if (area <= 0.05 || Math.abs(area / 2) > 5000) continue
 
       rooms.push(poly.map(p => ({ x: p.x, y: p.y })))
     }
