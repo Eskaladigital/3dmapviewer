@@ -205,56 +205,47 @@ export default function RenderGenerationModal() {
           ? `CRITICAL — HIGHEST PRIORITY (override all other options): ${opts.extra.trim()}. ${baseDirectives.join(' ')}`
           : baseDirectives.join(' ')
 
+        const FIDELITY_BLOCK = `
+FIDELITY — THIS IS THE MOST IMPORTANT RULE:
+Before generating, carefully COUNT every element in the source image: windows, doors, arches, columns, furniture pieces, openings. The output MUST have the EXACT SAME COUNT. If the source has 6 windows, the output MUST have exactly 6 windows. If it has 5 arches, exactly 5 arches. If 3 chairs, exactly 3 chairs. NEVER add or remove elements. NEVER merge two windows into one. NEVER split one arch into two. Count them, memorize the count, and reproduce that exact number.
+
+COMPOSITION FIDELITY:
+- Same camera angle, same perspective, same field of view.
+- Same proportions — if a wall is twice as wide as it is tall, keep that ratio.
+- Same spatial relationships — left stays left, right stays right, center stays center.
+- Same spacing between elements — if windows are evenly spaced, keep them evenly spaced with the same gaps.`
+
         let editPrompt: string
         if (capturedCameraMode === 'firstPerson') {
-          editPrompt = `Transform this first-person interior 3D render into a hyperrealistic architectural photograph. This is a view from INSIDE a room, at eye level.
+          editPrompt = `Transform this first-person interior 3D render into a hyperrealistic architectural photograph. View from INSIDE a room at eye level.
+${FIDELITY_BLOCK}
 
-Keep the EXACT SAME camera angle, perspective, and composition. The output must look like a real photograph taken from the EXACT SAME viewpoint inside the room.
+CONTEXT — 3D MODEL INTERPRETATION:
+- Flat green/dark-green areas visible through windows, doors, or openings = EXTERIOR (garden, grass, landscape). NOT green walls. Replace with realistic outdoor view: garden, trees, sky.
+- Interior walls are the surfaces INSIDE the room. Do NOT paint walls green.
+- Green through openings = exterior garden view.
 
-CRITICAL CONTEXT ABOUT THE SOURCE IMAGE:
-- This is a 3D architectural model. The flat green/dark-green areas visible through windows, doors, or openings represent the EXTERIOR (garden, grass, landscape, outdoors). They are NOT green walls or green paint. Replace them with a realistic outdoor view: garden with grass, trees, sky, natural landscape.
-- The actual interior walls are the surfaces with different colors/materials INSIDE the room. Do NOT paint any wall green unless it was clearly an interior wall with green paint.
-- Windows and openings that show green = exterior view. Render them as real windows showing a beautiful outdoor landscape with vegetation and sky.
+Quality: Autodesk 3DS Max + V-Ray, ultra-realistic textures, physical lighting, soft shadows, photorealistic finishes.
 
-Autodesk 3DS Max + V-Ray quality: ultra-realistic material textures, physical lighting, soft shadows, natural reflections, photorealistic finishes.
-
-ABSOLUTE RULES:
-1. KEEP THE EXACT SAME CAMERA ANGLE AND PERSPECTIVE — do NOT change the viewpoint.
-2. EXACT SAME NUMBER of furniture pieces — count every item and reproduce exactly that count.
-3. EXACT SAME POSITIONS — every piece stays in its exact location.
-4. EXACT SAME ROOM SHAPE — walls, doors, windows identical in position, size and count.
-5. DO NOT INVENT — if something is not visible, do NOT add it.
-6. DO NOT DUPLICATE items.
-7. GREEN AREAS THROUGH OPENINGS = EXTERIOR GARDEN, NOT GREEN WALLS.
-
-STYLE: ${styleDirectives || 'Upgrade to professional modern interior with warm lighting.'}`.trim()
+STYLE: ${styleDirectives || 'Professional modern interior with warm natural lighting.'}`.trim()
         } else if (viewType === 'topDown') {
-          editPrompt = `This is a top-down aerial view of an architectural 3D model. It could be a building, a floor plan, an urban layout, or any architectural project seen from above.
+          editPrompt = `Transform this top-down aerial 3D view into a hyperrealistic aerial/drone photograph. Could be a building, floor plan, urban layout, or any architectural project seen from above.
+${FIDELITY_BLOCK}
 
-Transform it into a hyperrealistic top-down architectural visualization (as seen from a drone or satellite looking straight down).
+ADDITIONAL RULES:
+- KEEP the exact same top-down camera angle. Do NOT change to perspective or isometric.
+- Add realistic textures: concrete, grass, wood, stone, asphalt, rooftops, landscaping.
+- Add realistic sunlight with shadows.
 
-CRITICAL RULES:
-1. KEEP THE EXACT SAME TOP-DOWN CAMERA ANGLE — do NOT change to perspective, isometric, or any other angle.
-2. KEEP THE EXACT SAME LAYOUT — all structures, buildings, rooms, and elements must remain in the same positions.
-3. KEEP THE EXACT SAME PROPORTIONS — do not resize or move anything.
-4. Add realistic textures: concrete, grass, wood, stone, asphalt, rooftops, landscaping, etc.
-5. Add realistic lighting: natural sunlight with shadows.
-6. The result must look like a real aerial/drone photograph, NOT a 3D render.
-
-STYLE: ${styleDirectives || 'Professional architectural visualization with natural lighting.'}`.trim()
+STYLE: ${styleDirectives || 'Professional architectural aerial visualization with natural lighting.'}`.trim()
         } else {
-          editPrompt = `This is an orbital/exterior 3D view of an architectural project. It could show buildings from outside, a housing development, a landscape, a neighborhood, or any architectural scene viewed from an elevated external perspective.
+          editPrompt = `Transform this orbital/exterior 3D view into a hyperrealistic architectural photograph. Could show buildings from outside, housing development, landscape, neighborhood, or any elevated external architectural view.
+${FIDELITY_BLOCK}
 
-Transform it into a hyperrealistic architectural photograph. Keep the EXACT SAME camera angle, perspective, and composition.
-
-Professional photography quality: ultra-realistic textures (brick, concrete, glass, wood, stone, vegetation), natural lighting with sun and shadows, atmospheric perspective, realistic sky.
-
-ABSOLUTE RULES:
-1. KEEP THE EXACT SAME CAMERA ANGLE AND PERSPECTIVE — do NOT change the viewpoint.
-2. KEEP THE EXACT SAME BUILDING/STRUCTURE LAYOUT — all buildings, structures, and elements stay in the same position.
-3. KEEP THE EXACT SAME PROPORTIONS — do not resize or move anything.
-4. DO NOT INVENT buildings, structures, or elements that are not in the original image.
-5. DO NOT CHANGE the architectural style or layout.
+ADDITIONAL RULES:
+- Ultra-realistic textures: brick, concrete, glass, wood, stone, vegetation.
+- Natural lighting with sun, shadows, atmospheric perspective, realistic sky.
+- Flat green areas on the ground = grass/garden. Render as realistic lawn/vegetation.
 
 STYLE: ${styleDirectives || 'Professional architectural exterior visualization with natural lighting and landscaping.'}`.trim()
         }
