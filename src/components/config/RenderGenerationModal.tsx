@@ -205,49 +205,44 @@ export default function RenderGenerationModal() {
           ? `CRITICAL — HIGHEST PRIORITY (override all other options): ${opts.extra.trim()}. ${baseDirectives.join(' ')}`
           : baseDirectives.join(' ')
 
-        const FIDELITY_BLOCK = `
-FIDELITY — THIS IS THE MOST IMPORTANT RULE:
-Before generating, carefully COUNT every element in the source image: windows, doors, arches, columns, furniture pieces, openings. The output MUST have the EXACT SAME COUNT. If the source has 6 windows, the output MUST have exactly 6 windows. If it has 5 arches, exactly 5 arches. If 3 chairs, exactly 3 chairs. NEVER add or remove elements. NEVER merge two windows into one. NEVER split one arch into two. Count them, memorize the count, and reproduce that exact number.
-
-COMPOSITION FIDELITY:
-- Same camera angle, same perspective, same field of view.
-- Same proportions — if a wall is twice as wide as it is tall, keep that ratio.
-- Same spatial relationships — left stays left, right stays right, center stays center.
-- Same spacing between elements — if windows are evenly spaced, keep them evenly spaced with the same gaps.`
-
         let editPrompt: string
+        const styleHint = styleDirectives || ''
+
         if (capturedCameraMode === 'firstPerson') {
-          editPrompt = `Transform this first-person interior 3D render into a hyperrealistic architectural photograph. View from INSIDE a room at eye level.
-${FIDELITY_BLOCK}
+          editPrompt = `Apply photorealistic textures and lighting to this 3D interior render. This is a first-person view from inside a room.
 
-CONTEXT — 3D MODEL INTERPRETATION:
-- Flat green/dark-green areas visible through windows, doors, or openings = EXTERIOR (garden, grass, landscape). NOT green walls. Replace with realistic outdoor view: garden, trees, sky.
-- Interior walls are the surfaces INSIDE the room. Do NOT paint walls green.
-- Green through openings = exterior garden view.
-
-Quality: Autodesk 3DS Max + V-Ray, ultra-realistic textures, physical lighting, soft shadows, photorealistic finishes.
-
-STYLE: ${styleDirectives || 'Professional modern interior with warm natural lighting.'}`.trim()
+MAXIMUM FIDELITY to the source image. The output must be a pixel-faithful transformation:
+- Identical camera angle, identical perspective, identical composition.
+- Identical number of every element. Count: walls, windows, doors, arches, columns, furniture. Reproduce the EXACT count.
+- Identical positions, sizes, proportions, and spacing of all elements.
+- Do NOT add, remove, move, merge, or split ANY element.
+- Do NOT add a roof, extra buildings, extra furniture, or anything not in the source.
+- Green/dark areas through openings = outdoor garden, NOT green paint on walls.
+${styleHint ? `\nStyle preference: ${styleHint}` : ''}`
         } else if (viewType === 'topDown') {
-          editPrompt = `Transform this top-down aerial 3D view into a hyperrealistic aerial/drone photograph. Could be a building, floor plan, urban layout, or any architectural project seen from above.
-${FIDELITY_BLOCK}
+          editPrompt = `Apply photorealistic textures and lighting to this top-down 3D architectural view. Keep the exact same overhead camera angle.
 
-ADDITIONAL RULES:
-- KEEP the exact same top-down camera angle. Do NOT change to perspective or isometric.
-- Add realistic textures: concrete, grass, wood, stone, asphalt, rooftops, landscaping.
-- Add realistic sunlight with shadows.
-
-STYLE: ${styleDirectives || 'Professional architectural aerial visualization with natural lighting.'}`.trim()
+MAXIMUM FIDELITY to the source image. The output must be a pixel-faithful transformation:
+- Identical camera angle (top-down), identical layout, identical proportions.
+- Identical number of every element: rooms, walls, openings, furniture. Reproduce the EXACT count.
+- Identical positions, sizes, and spacing of all elements.
+- Do NOT add, remove, move, merge, or split ANY element.
+- Do NOT add roofs, extra buildings, or anything not visible in the source.
+- Green flat area = grass lawn. Render as realistic grass.
+${styleHint ? `\nStyle preference: ${styleHint}` : ''}`
         } else {
-          editPrompt = `Transform this orbital/exterior 3D view into a hyperrealistic architectural photograph. Could show buildings from outside, housing development, landscape, neighborhood, or any elevated external architectural view.
-${FIDELITY_BLOCK}
+          editPrompt = `Apply photorealistic textures and lighting to this 3D architectural model. This is an orbital/exterior view.
 
-ADDITIONAL RULES:
-- Ultra-realistic textures: brick, concrete, glass, wood, stone, vegetation.
-- Natural lighting with sun, shadows, atmospheric perspective, realistic sky.
-- Flat green areas on the ground = grass/garden. Render as realistic lawn/vegetation.
-
-STYLE: ${styleDirectives || 'Professional architectural exterior visualization with natural lighting and landscaping.'}`.trim()
+MAXIMUM FIDELITY to the source image. The output must be a pixel-faithful transformation:
+- Identical camera angle, identical perspective, identical composition.
+- Identical building shape, floor plan outline, and wall positions. If the building is L-shaped, it MUST remain L-shaped.
+- Identical number of every element: walls, windows, doors, rooms, furniture. Reproduce the EXACT count.
+- Identical positions, sizes, proportions, and spacing of all elements.
+- Do NOT add roofs, extra buildings, extra windows, landscaping elements, or anything not in the source.
+- Do NOT change the building shape or footprint.
+- Open walls (no roof in source) = keep visible interior, do NOT close with a roof.
+- Green flat area = grass lawn. Render as realistic grass with sky above.
+${styleHint ? `\nStyle preference: ${styleHint}` : ''}`
         }
         setLastAnalyzedPrompt(editPrompt)
         for (let i = 0; i < imageCount; i++) {

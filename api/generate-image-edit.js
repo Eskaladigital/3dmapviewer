@@ -33,9 +33,9 @@ export default async function handler(req, res) {
         input_fidelity: 'high',
         n: 1,
         size: '1024x1024',
-        quality: 'medium',
+        quality: 'high',
         output_format: 'jpeg',
-        output_compression: 80,
+        output_compression: 85,
       }),
     })
     const data = await editRes.json()
