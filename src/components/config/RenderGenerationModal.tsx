@@ -386,13 +386,16 @@ WHAT YOU CAN CHANGE (style only): ${styleDirectives || 'Upgrade to professional 
                     </div>
                   </div>
 
-                  <SelectField label="Estilo de diseño" options={DESIGN_STYLES} value={opts.designStyle} onChange={(v) => setOpts(o => ({ ...o, designStyle: v }))} c={c} />
-                  <SelectField label="Mobiliario" options={FURNITURE_STYLES} value={opts.furniture} onChange={(v) => setOpts(o => ({ ...o, furniture: v }))} c={c} />
-                  <SelectField label="Colores" options={COLOR_PALETTES} value={opts.colors} onChange={(v) => setOpts(o => ({ ...o, colors: v }))} c={c} />
-                  <SelectField label="Hora del día" options={TIME_OPTIONS} value={opts.timeOfDay} onChange={(v) => setOpts(o => ({ ...o, timeOfDay: v }))} c={c} />
-                  <SelectField label="Atmósfera" options={ATMOSPHERE} value={opts.atmosphere} onChange={(v) => setOpts(o => ({ ...o, atmosphere: v }))} c={c} />
-                  <SelectField label="Iluminación" options={LIGHTING} value={opts.lighting} onChange={(v) => setOpts(o => ({ ...o, lighting: v }))} c={c} />
-                  <SelectField label="Materiales" options={MATERIALS} value={opts.materials} onChange={(v) => setOpts(o => ({ ...o, materials: v }))} c={c} />
+                  <div style={{ fontSize: 11, color: c.textMuted, marginBottom: 8 }}>
+                    Todos los parámetros son opcionales. Puedes generar sin seleccionar ninguno (se usan valores por defecto).
+                  </div>
+                  <SelectField label="Estilo de diseño (opcional)" options={DESIGN_STYLES} value={opts.designStyle} onChange={(v) => setOpts(o => ({ ...o, designStyle: v }))} c={c} />
+                  <SelectField label="Mobiliario (opcional)" options={FURNITURE_STYLES} value={opts.furniture} onChange={(v) => setOpts(o => ({ ...o, furniture: v }))} c={c} />
+                  <SelectField label="Colores (opcional)" options={COLOR_PALETTES} value={opts.colors} onChange={(v) => setOpts(o => ({ ...o, colors: v }))} c={c} />
+                  <SelectField label="Hora del día (opcional)" options={TIME_OPTIONS} value={opts.timeOfDay} onChange={(v) => setOpts(o => ({ ...o, timeOfDay: v }))} c={c} />
+                  <SelectField label="Atmósfera (opcional)" options={ATMOSPHERE} value={opts.atmosphere} onChange={(v) => setOpts(o => ({ ...o, atmosphere: v }))} c={c} />
+                  <SelectField label="Iluminación (opcional)" options={LIGHTING} value={opts.lighting} onChange={(v) => setOpts(o => ({ ...o, lighting: v }))} c={c} />
+                  <SelectField label="Materiales (opcional)" options={MATERIALS} value={opts.materials} onChange={(v) => setOpts(o => ({ ...o, materials: v }))} c={c} />
 
                   <div style={{ marginTop: 12 }}>
                     <label style={{ fontSize: 12, color: c.textMuted, display: 'block', marginBottom: 4 }}>
@@ -561,7 +564,7 @@ function SelectField({
           color: c.text, fontFamily: 'inherit',
         }}
       >
-        <option value="">— Seleccionar —</option>
+        <option value="">— Opcional (usar por defecto) —</option>
         {options.map((o) => (
           <option key={o} value={o}>{o}</option>
         ))}

@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/generate-image.js": { "maxDuration": 60 },
+    "api/generate-image-edit.js": { "maxDuration": 60 },
+    "api/analyze-scene-image.js": { "maxDuration": 30 }
+  }
+}
