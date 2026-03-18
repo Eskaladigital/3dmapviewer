@@ -10,16 +10,8 @@ if (!fs.existsSync(PROJECTS_DIR)) {
   fs.mkdirSync(PROJECTS_DIR, { recursive: true })
 }
 
-export default defineConfig(({ mode }) => {
-  Object.assign(process.env, loadEnv(mode, process.cwd(), ''))
-  return {
-  server: { port: 3000 },
-  plugins: [
-    react(),
-    {
-      name: 'floorcraft-api',
-      configureServer(server) {
-        server.middlewares.use('/api', (req, res, next) => {
+function createFloorcraftApiMiddleware() {
+  return (req: any, res: any, next: () => void) => {
           res.setHeader('Content-Type', 'application/json')
           const url = req.url || ''
 
@@ -405,7 +397,24 @@ Escribe en español. Sé exhaustivo. La descripción debe permitir reproducir el
 
           res.statusCode = 404
           res.end(JSON.stringify({ error: 'Not found' }))
-        })
+  }
+}
+
+export default defineConfig(({ mode }) => {
+  Object.assign(process.env, loadEnv(mode, process.cwd(), ''))
+  const apiMiddleware = createFloorcraftApiMiddleware()
+  return {
+  server: { port: 3000 },
+  preview: { port: 3000 },
+  plugins: [
+    react(),
+    {
+      name: 'floorcraft-api',
+      configureServer(server) {
+        server.middlewares.use('/api', apiMiddleware)
+      },
+      configurePreviewServer(server) {
+        server.middlewares.use('/api', apiMiddleware)
       },
     },
   ],

@@ -1,4 +1,18 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+
+const MOBILE_BREAKPOINT = 768
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT)
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    const handler = () => setIsMobile(mq.matches)
+    handler()
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return isMobile
+}
 import { jsPDF } from 'jspdf'
 import FloorPlanEditor from './components/editor2d/FloorPlanEditor'
 import ConfigPanel from './components/config/ConfigPanel'
@@ -29,7 +43,7 @@ function Toast({ message, type = 'success', visible }: { message: string; type?:
   )
 }
 
-function HeaderBar({ onToast, editor2dCanvasRef }: { onToast: (msg: string, type?: 'success' | 'info') => void; editor2dCanvasRef: React.RefObject<HTMLCanvasElement | null> }) {
+function HeaderBar({ onToast, editor2dCanvasRef, compact }: { onToast: (msg: string, type?: 'success' | 'info') => void; editor2dCanvasRef: React.RefObject<HTMLCanvasElement | null>; compact?: boolean }) {
   const store = useStore()
   const theme = useStore((s) => s.theme)
   const t = THEMES[theme]
@@ -38,6 +52,7 @@ function HeaderBar({ onToast, editor2dCanvasRef }: { onToast: (msg: string, type
   const [showLoad, setShowLoad] = useState(false)
   const [showNewMenu, setShowNewMenu] = useState(false)
   const [showExportPlano, setShowExportPlano] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [savedList, setSavedList] = useState<{ id: string; name: string; savedAt: string }[]>([])
   const [isEditingName, setIsEditingName] = useState(false)
   const [editName, setEditName] = useState(projectName)
@@ -96,10 +111,11 @@ function HeaderBar({ onToast, editor2dCanvasRef }: { onToast: (msg: string, type
       if (loadMenuRef.current && !loadMenuRef.current.contains(e.target as Node)) setShowLoad(false)
       if (exportPlanoMenuRef.current && !exportPlanoMenuRef.current.contains(e.target as Node)) setShowExportPlano(false)
       if (newMenuRef.current && !newMenuRef.current.contains(e.target as Node)) setShowNewMenu(false)
+      if ((e.target as HTMLElement).closest?.('[data-mobile-menu]') === null) setShowMobileMenu(false)
     }
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
-  }, [showLoad, showExportPlano, showNewMenu])
+  }, [showLoad, showExportPlano, showNewMenu, showMobileMenu])
 
   const handleNew = useCallback(() => {
     if (store.hasUnsavedChanges() || store.getActiveFloor().walls.length > 0 || store.getActiveFloor().furniture.length > 0) {
@@ -120,9 +136,11 @@ function HeaderBar({ onToast, editor2dCanvasRef }: { onToast: (msg: string, type
       version: '1.0',
       exportedAt: new Date().toISOString(),
       project: s.project,
+      theme: s.theme,
       globalWallColor: s.globalWallColor,
       globalFloorMaterial: s.globalFloorMaterial,
       globalFloorColor: s.globalFloorColor,
+      sceneMaterials: s.sceneMaterials,
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -193,6 +211,33 @@ function HeaderBar({ onToast, editor2dCanvasRef }: { onToast: (msg: string, type
     setSavedList(list)
   }, [store])
 
+  const handleImport = useCallback(() => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json,application/json'
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result as string)
+          if (store.loadProjectFromFile(data)) {
+            onToast('Proyecto importado correctamente', 'info')
+            setShowLoad(false)
+            setShowMobileMenu(false)
+          } else {
+            onToast('Archivo no válido (falta project)', 'info')
+          }
+        } catch {
+          onToast('Error al leer el archivo JSON', 'info')
+        }
+      }
+      reader.readAsText(file)
+    }
+    input.click()
+  }, [store, onToast])
+
   const handleNameSubmit = useCallback(() => {
     const trimmed = editName.trim()
     if (trimmed) store.setProjectName(trimmed)
@@ -205,16 +250,21 @@ function HeaderBar({ onToast, editor2dCanvasRef }: { onToast: (msg: string, type
   const ddStyle: React.CSSProperties = h.dropdown
 
   return (
-    <div style={h.bar}>
-      <div style={h.left}>
-        <div style={h.logo}>
+    <div style={{ ...h.bar, ...(compact ? { padding: '0 10px', height: 40, minHeight: 40 } : {}) }}>
+      <div style={{ ...h.left, ...(compact ? { minWidth: 0 } : {}) }}>
+        <div style={{ ...h.logo, ...(compact ? { fontSize: 14 } : {}) }}>
           <span style={{ color: t.accent }}>Floor</span>
           <span style={{ color: t.textSecondary }}>Craft</span>
         </div>
 
-        <div style={{ ...h.divider, background: t.border }} />
+        {!compact && <div style={{ ...h.divider, background: t.border }} />}
 
-        {isEditingName ? (
+        {compact ? (
+          <span style={{ ...h.projectName, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }} title={projectName}>
+            {projectName}
+            {hasUnsavedChanges && <span style={{ marginLeft: 2, color: t.accent }}>*</span>}
+          </span>
+        ) : isEditingName ? (
           <input
             ref={nameInputRef}
             value={editName}
@@ -236,7 +286,43 @@ function HeaderBar({ onToast, editor2dCanvasRef }: { onToast: (msg: string, type
         )}
       </div>
 
-      <div style={h.actions}>
+      <div style={{ ...h.actions, ...(compact ? { gap: 4 } : {}) }}>
+        {compact && (
+          <>
+            <button style={{ ...btnSmStyle, opacity: store.canUndo() ? 1 : 0.3 }} onClick={() => { store.undo(); forceRender(n => n + 1) }} disabled={!store.canUndo()} title="Deshacer">↩</button>
+            <button style={{ ...btnSmStyle, opacity: store.canRedo() ? 1 : 0.3 }} onClick={() => { store.redo(); forceRender(n => n + 1) }} disabled={!store.canRedo()} title="Rehacer">↪</button>
+            <button style={{ ...btnStyle, padding: '5px 10px' }} onClick={handleSave} title="Guardar">💾</button>
+            <div style={{ position: 'relative' }} data-mobile-menu="true">
+              <button style={{ ...btnStyle, padding: '5px 10px' }} onClick={() => { setShowMobileMenu(v => !v); if (!showMobileMenu) handleOpenLoad() }} title="Más">⋯</button>
+              {showMobileMenu && (
+                <div ref={loadMenuRef} style={{ ...h.dropdown, right: 0, width: 240, maxHeight: '70vh' }}>
+                  <div style={{ ...h.dropdownItem, borderBottom: `1px solid ${t.border}` }} onClick={() => { handleNew(); setShowMobileMenu(false) }}><span style={{ color: t.text }}>Nuevo vacío</span></div>
+                  <div style={{ ...h.dropdownItem, borderBottom: `1px solid ${t.borderLight}` }} onClick={() => { handleImport(); setShowMobileMenu(false) }}><span style={{ color: t.accent, fontWeight: 600 }}>📥 Importar desde archivo</span></div>
+                  <div style={{ ...h.dropdownHeader, color: t.textMuted }}>Cargar proyecto</div>
+                  {savedList.length === 0 ? (
+                    <div style={{ ...h.dropdownEmpty, color: t.textMuted }}>No hay proyectos guardados</div>
+                  ) : (
+                    savedList.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()).map((p) => (
+                      <div key={p.id} style={{ ...h.dropdownItem, borderBottom: `1px solid ${t.borderLight}` }} onClick={() => { handleLoad(p.id); setShowMobileMenu(false) }}>
+                        <div style={h.dropdownItemInfo}>
+                          <span style={{ ...h.dropdownItemName, color: t.text }}>{p.name}</span>
+                          <span style={{ ...h.dropdownItemDate, color: t.textMuted }}>{new Date(p.savedAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <div style={{ ...h.dropdownHeader, color: t.textMuted, marginTop: 8 }}>Exportar</div>
+                  <div style={{ ...h.dropdownItem, borderBottom: `1px solid ${t.borderLight}` }} onClick={() => { handleExport(); setShowMobileMenu(false) }}><span style={{ color: t.text }}>Exportar JSON</span></div>
+                  <div style={{ ...h.dropdownItem, borderBottom: `1px solid ${t.borderLight}` }} onClick={() => { handleExportPlano('png'); setShowMobileMenu(false) }}><span style={{ color: t.text }}>Plano PNG</span></div>
+                  <div style={{ ...h.dropdownItem, borderBottom: `1px solid ${t.borderLight}` }} onClick={() => { handleExportPlano('pdf'); setShowMobileMenu(false) }}><span style={{ color: t.text }}>Plano PDF</span></div>
+                  <div style={h.dropdownItem} onClick={() => { store.toggleTheme(); setShowMobileMenu(false) }}><span style={{ color: t.text }}>{theme === 'dark' ? '☀️ Claro' : '🌙 Oscuro'}</span></div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+        {!compact && (
+        <>
         <button
           style={{ ...btnSmStyle, opacity: store.canUndo() ? 1 : 0.3 }}
           onClick={() => { store.undo(); forceRender(n => n + 1) }}
@@ -300,6 +386,9 @@ function HeaderBar({ onToast, editor2dCanvasRef }: { onToast: (msg: string, type
 
           {showLoad && (
             <div ref={loadMenuRef} style={ddStyle}>
+              <div style={{ ...h.dropdownItem, borderBottom: `1px solid ${t.border}`, background: t.accentBg || 'transparent' }} onClick={() => { handleImport(); setShowLoad(false) }}>
+                <span style={{ color: t.accent, fontWeight: 600 }}>📥 Importar desde archivo</span>
+              </div>
               <div style={{ ...h.dropdownHeader, color: t.textMuted, borderBottom: `1px solid ${t.border}` }}>Proyectos guardados</div>
               {savedList.length === 0 ? (
                 <div style={{ ...h.dropdownEmpty, color: t.textMuted }}>No hay proyectos guardados</div>
@@ -363,6 +452,8 @@ function HeaderBar({ onToast, editor2dCanvasRef }: { onToast: (msg: string, type
           <span style={{ fontSize: 15, lineHeight: 1 }}>{theme === 'dark' ? '☀️' : '🌙'}</span>
           <span>{theme === 'dark' ? 'Claro' : 'Oscuro'}</span>
         </button>
+        </>
+        )}
       </div>
     </div>
   )
@@ -555,9 +646,58 @@ function ShortcutsBar() {
   )
 }
 
+type MobileTab = '2d' | 'panel' | '3d'
+
+function MobileTabBar({ active, onSelect, t }: { active: MobileTab; onSelect: (tab: MobileTab) => void; t: ThemeColors }) {
+  const tabs: { id: MobileTab; label: string; icon: string }[] = [
+    { id: '2d', label: 'Plano', icon: '📐' },
+    { id: 'panel', label: 'Panel', icon: '⚙️' },
+    { id: '3d', label: '3D', icon: '🏠' },
+  ]
+  return (
+    <nav style={{
+      display: 'flex',
+      alignItems: 'stretch',
+      justifyContent: 'space-around',
+      background: t.bgPanel,
+      borderTop: `1px solid ${t.border}`,
+      paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+      paddingTop: 8,
+      flexShrink: 0,
+    }}>
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onSelect(tab.id)}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            padding: '8px 4px',
+            background: 'none',
+            border: 'none',
+            color: active === tab.id ? t.accent : t.textMuted,
+            fontSize: 11,
+            fontWeight: active === tab.id ? 600 : 400,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          <span style={{ fontSize: 20 }}>{tab.icon}</span>
+          <span>{tab.label}</span>
+        </button>
+      ))}
+    </nav>
+  )
+}
+
 export default function App() {
   const theme = useStore((s) => s.theme)
   const t = THEMES[theme]
+  const isMobile = useIsMobile()
+  const [mobileTab, setMobileTab] = useState<MobileTab>('2d')
   const pendingToast = useStore((s) => s.pendingToast)
   const setPendingToast = useStore((s) => s.setPendingToast)
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'info', visible: false })
@@ -584,6 +724,45 @@ export default function App() {
   }, [])
 
   const editor2dCanvasRef = useRef<HTMLCanvasElement>(null)
+
+  if (isMobile) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100vw',
+        height: '100dvh',
+        overflow: 'hidden',
+        background: t.bg,
+        transition: 'background 0.3s',
+        paddingTop: 'env(safe-area-inset-top)',
+      }}>
+        <HeaderBar onToast={showToast} editor2dCanvasRef={editor2dCanvasRef} compact />
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          {mobileTab === '2d' && (
+            <div style={{ flex: 1, minHeight: 0, background: t.bgPanel }}>
+              <FloorPlanEditor canvasRef={editor2dCanvasRef} />
+            </div>
+          )}
+          {mobileTab === 'panel' && (
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+              <ConfigPanel />
+            </div>
+          )}
+          {mobileTab === '3d' && (
+            <div style={{ flex: 1, minHeight: 0, background: theme === 'dark' ? '#0a0b10' : '#e8eaed' }}>
+              <Viewer3D />
+            </div>
+          )}
+        </div>
+        <MobileTabBar active={mobileTab} onSelect={setMobileTab} t={t} />
+        <Toast message={toast.message} type={toast.type} visible={toast.visible} />
+        <RenderGenerationModal />
+        <AIAnalysisModal />
+        <ManualTraceModal />
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100vw', height: '100vh', overflow: 'hidden', background: t.bg, transition: 'background 0.3s' }}>

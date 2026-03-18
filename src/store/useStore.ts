@@ -80,6 +80,7 @@ interface AppStore {
   applyFloorTemplate: (templateId: string) => void
   saveProject: () => void
   loadProject: (id: string) => Promise<boolean>
+  loadProjectFromFile: (data: Record<string, unknown>) => boolean
   deleteProject: (id: string) => Promise<void>
   getSavedProjects: () => Promise<SavedProjectMeta[]>
 
@@ -409,6 +410,24 @@ export const useStore = create<AppStore>((set, get) => ({
     if (!raw) return false
     try {
       applyData(JSON.parse(raw))
+      return true
+    } catch {
+      return false
+    }
+  },
+
+  loadProjectFromFile: (data) => {
+    if (!data?.project) return false
+    try {
+      set({
+        project: data.project,
+        theme: data.theme || 'dark',
+        globalWallColor: data.globalWallColor || '#FFFFFF',
+        globalFloorMaterial: data.globalFloorMaterial || 'wood',
+        globalFloorColor: data.globalFloorColor || '#C4A882',
+        sceneMaterials: data.sceneMaterials || JSON.parse(JSON.stringify(DEFAULT_SCENE_MATERIALS)),
+        dirty: false,
+      })
       return true
     } catch {
       return false

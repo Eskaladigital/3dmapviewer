@@ -3849,7 +3849,7 @@ function Scene() {
         <FirstPersonController />
       )}
 
-      <EffectComposer>
+      <EffectComposer enableNormalPass>
         <SSAO
           radius={0.4}
           intensity={15}
