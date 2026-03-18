@@ -1,10 +1,13 @@
 import React, { useState, useMemo, useRef } from 'react'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls, Stage } from '@react-three/drei'
 import { Sofa, ChefHat, BedDouble, Bath, Lightbulb, LayoutGrid, MousePointer2, Square, DoorOpen, AppWindow, Eraser, Wrench, PaintBucket, Layers, Plus, Trash2, Home, Upload, PenTool, CircleDashed, MoveHorizontal, DivideSquare, Maximize2, Columns, RectangleHorizontal, FoldHorizontal, Armchair, Bed, BedSingle, Tv, Monitor, Refrigerator, Microwave, Droplets, Flame, Snowflake, Wind, Shirt, Box, Coffee, Book, Library, Shield, Umbrella, Archive, Utensils, Music, Dumbbell, Gamepad2, Sprout, Briefcase, Store, Stethoscope, Scissors, Wine } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { FURNITURE_CATALOG, MATERIALS, STYLE_PRESETS, OPENING_CATALOG, THEMES, MATERIAL_SECTION_LABELS, DEFAULT_SCENE_MATERIALS } from '@/types'
-import type { EditorTool, OpeningCatalogItem, ThemeColors, SceneMaterials, MaterialSlot } from '@/types'
+import type { EditorTool, OpeningCatalogItem, ThemeColors, SceneMaterials, MaterialSlot, FurnitureItem } from '@/types'
 import { loadFloorPlanFile, extractWallsFromDxf } from '@/utils/floorPlanImport'
 import { detectWallsWithOpenCV, isOpenCvReady } from '@/utils/opencvWallDetection'
+import { FurnitureMesh } from '../viewer3d/Viewer3D'
 
 const CATEGORIES = [
   { id: 'living', label: 'Salón', icon: <Sofa size={16} /> },
@@ -236,6 +239,68 @@ function CalibrationMetersPrompt({ store, c, s }: { store: ReturnType<typeof use
         >
           Cancelar
         </button>
+      </div>
+    </div>
+  )
+}
+
+function FurniturePreview3D({ catalogItem, c }: { catalogItem: typeof FURNITURE_CATALOG[0], c: ThemeColors }) {
+  // Creamos un item falso para renderizar en el Mesh
+  const fakeItem: FurnitureItem = useMemo(() => ({
+    id: 'preview',
+    type: catalogItem.type,
+    category: catalogItem.category,
+    label: catalogItem.label,
+    x: 0,
+    y: 0,
+    rotation: 0,
+    width: catalogItem.width,
+    depth: catalogItem.depth,
+    height: catalogItem.height,
+    elevation: catalogItem.defaultElevation || 0,
+    color: catalogItem.defaultColor,
+    material: catalogItem.defaultMaterial || 'wood',
+  }), [catalogItem])
+
+  return (
+    <div style={{
+      width: '100%',
+      height: 180,
+      background: c.bgCard,
+      borderRadius: 8,
+      border: `1px solid ${c.border}`,
+      overflow: 'hidden',
+      position: 'relative',
+      marginBottom: 16,
+      boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.1)'
+    }}>
+      <Canvas camera={{ position: [2, 1.5, 2], fov: 40 }} shadows>
+        <color attach="background" args={[c.bgPanel]} />
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[5, 10, 5]} intensity={1} castShadow shadow-mapSize={512} />
+        <directionalLight position={[-5, 5, -5]} intensity={0.3} />
+        
+        <Stage environment="city" intensity={0.5} adjustCamera={1.2}>
+          <group position={[0, -fakeItem.height / 2, 0]}>
+            <FurnitureMesh item={fakeItem} onSelect={() => {}} />
+          </group>
+        </Stage>
+        <OrbitControls autoRotate autoRotateSpeed={2} enablePan={false} enableZoom={true} minPolarAngle={0} maxPolarAngle={Math.PI / 2} />
+      </Canvas>
+      <div style={{
+        position: 'absolute',
+        bottom: 8,
+        left: 8,
+        pointerEvents: 'none',
+        background: 'rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(4px)',
+        color: '#fff',
+        padding: '4px 8px',
+        borderRadius: 4,
+        fontSize: 11,
+        fontFamily: '"DM Sans", sans-serif',
+      }}>
+        {catalogItem.label} ({(catalogItem.width * 100).toFixed(0)}x{(catalogItem.depth * 100).toFixed(0)} cm)
       </div>
     </div>
   )
@@ -861,6 +926,9 @@ export default function ConfigPanel() {
             : FURNITURE_CATALOG.filter((f) => f.category === furnitureCategory)
           return (
             <>
+              {editor.selectedFurnitureCatalog && (
+                <FurniturePreview3D catalogItem={editor.selectedFurnitureCatalog} c={c} />
+              )}
               <div style={s.searchBox}>
                 <span style={{ fontSize: 13, opacity: 0.5 }}>🔍</span>
                 <input

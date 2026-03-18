@@ -789,7 +789,7 @@ function DoorPanel({ x, w, h, fd, sm, panelColor, french, fullGlass = false, hin
 }
 
 /* ─── Furniture Mesh ─── */
-const FurnitureMesh = memo(function FurnitureMesh({ item, onSelect, ceilingHeight = 2.7 }: { item: FurnitureItem; onSelect: (id: string) => void; ceilingHeight?: number }) {
+export const FurnitureMesh = memo(function FurnitureMesh({ item, onSelect, ceilingHeight = 2.7 }: { item: FurnitureItem; onSelect: (id: string) => void; ceilingHeight?: number }) {
   const isSelected = useStore((s) => s.editor.selectedFurnitureIds?.includes(item.id) || s.editor.selectedItemId === item.id)
   const smCountertop = useStore((s) => s.sceneMaterials.countertop)
 
