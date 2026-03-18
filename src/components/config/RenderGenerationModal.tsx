@@ -62,11 +62,11 @@ const MATERIALS = [
   'Concreto pulido', 'Madera oscura', 'Blanco y cristal', 'Materiales mixtos',
 ]
 
-const RENDER_QUALITY_PREAMBLE = `Fotografía arquitectónica hiperrealista basada estrictamente en la imagen de referencia. Mantener EXACTAMENTE la misma composición, distribución del espacio, proporciones, arquitectura y posición de todos los elementos y muebles. No añadir, eliminar ni mover ningún objeto. No modificar la estructura ni la geometría del espacio.
+const RENDER_QUALITY_PREAMBLE = `Fotografía arquitectónica hiperrealista basada estrictamente en la imagen de referencia. Mantener EXACTAMENTE la misma composición, distribución del espacio, proporciones, arquitectura y posición de todos los elementos. No añadir, eliminar ni mover ningún elemento. No modificar la estructura ni la geometría.
 
-Mejorar únicamente materiales, texturas e iluminación para lograr calidad fotográfica real. Texturas ultra detalladas y físicamente precisas (madera con veta real, tejidos con trama visible, piedra con microimperfecciones, metal con reflejos naturales).
+Mejorar únicamente materiales, texturas e iluminación para lograr calidad fotográfica real. Texturas ultra detalladas y físicamente precisas.
 
-Fotografía tomada con cámara full-frame profesional, lente 24mm, f/8, ISO 100. Balance de blancos neutro, ligera profundidad de campo realista. Estilo editorial de revista de arquitectura de alta gama.
+Fotografía tomada con cámara full-frame profesional. Balance de blancos neutro. Estilo editorial de revista de arquitectura de alta gama.
 
 Sin apariencia CGI. Sin efecto render. Sin reinterpretación del diseño. Sin alterar composición. Sin cambiar perspectiva. Solo mejora de realismo fotográfico.`
 
@@ -116,7 +116,7 @@ REGLAS ABSOLUTAS — NO VIOLAR NINGUNA:
   }
 
   const variation = variationIndex !== undefined ? '\n\n' + PROMPT_VARIATIONS[variationIndex % PROMPT_VARIATIONS.length] : ''
-  return `Genera una imagen para este espacio interior. ${RENDER_QUALITY_PREAMBLE}${styleSection}${variation}`
+  return `Genera una imagen para este espacio arquitectónico. ${RENDER_QUALITY_PREAMBLE}${styleSection}${variation}`
 }
 
 export default function RenderGenerationModal() {
@@ -125,6 +125,7 @@ export default function RenderGenerationModal() {
   const open = useStore((s) => s.renderGenerationModalOpen)
   const lastImage = useStore((s) => s.lastCapturedImage)
   const viewType = useStore((s) => s.lastCapturedViewType)
+  const capturedCameraMode = useStore((s) => s.lastCapturedCameraMode)
   const setRenderGenerationModalOpen = useStore((s) => s.setRenderGenerationModalOpen)
   const setLastCapturedImage = useStore((s) => s.setLastCapturedImage)
 
@@ -203,31 +204,54 @@ export default function RenderGenerationModal() {
         const styleDirectives = opts.extra?.trim()
           ? `CRITICAL — HIGHEST PRIORITY (override all other options): ${opts.extra.trim()}. ${baseDirectives.join(' ')}`
           : baseDirectives.join(' ')
-        const editPrompt = viewType === 'topDown'
-          ? `This is a top-down floor plan view of an interior space. Transform it into a hyperrealistic top-down architectural visualization (as seen from directly above, like a drone shot looking straight down).
 
-CRITICAL RULES:
-1. KEEP THE EXACT SAME TOP-DOWN CAMERA ANGLE — do NOT change to a perspective or isometric view.
-2. KEEP THE EXACT SAME ROOM LAYOUT — walls, rooms, doors, and windows must remain in the same positions.
-3. KEEP THE EXACT SAME FURNITURE POSITIONS — every object stays where it is.
-4. Add realistic textures: wood floors with visible grain, marble counters, fabric sofas, realistic carpet, etc.
-5. Add realistic lighting: soft ambient light from above, shadows cast by furniture.
-6. The result must look like a real architectural overhead photograph, NOT a 3D render.
+        let editPrompt: string
+        if (capturedCameraMode === 'firstPerson') {
+          editPrompt = `Transform this first-person interior 3D render into a hyperrealistic architectural photograph. This is a view from INSIDE a room, at eye level.
 
-${styleDirectives ? `STYLE: ${styleDirectives}` : 'STYLE: Modern professional interior with warm lighting.'}`.trim()
-          : `Transform this 3D interior render into a hyperrealistic architectural photograph. Keep the EXACT SAME camera angle, perspective, and composition. The output must look like a real photograph taken from the EXACT SAME viewpoint.
+Keep the EXACT SAME camera angle, perspective, and composition. The output must look like a real photograph taken from the EXACT SAME viewpoint inside the room.
 
 Autodesk 3DS Max + V-Ray quality: ultra-realistic material textures, physical lighting, soft shadows, natural reflections, photorealistic finishes.
 
-ABSOLUTE RULES — VIOLATING ANY RUINS THE IMAGE:
+ABSOLUTE RULES:
 1. KEEP THE EXACT SAME CAMERA ANGLE AND PERSPECTIVE — do NOT change the viewpoint.
 2. EXACT SAME NUMBER of furniture pieces — count every item and reproduce exactly that count.
-3. EXACT SAME POSITIONS — every piece of furniture stays in its exact location.
+3. EXACT SAME POSITIONS — every piece stays in its exact location.
 4. EXACT SAME ROOM SHAPE — walls, doors, windows identical in position, size and count.
 5. DO NOT INVENT — if something is not visible, do NOT add it.
-6. DO NOT DUPLICATE — if there is 1 sofa, render exactly 1. If there are 4 chairs, exactly 4.
+6. DO NOT DUPLICATE items.
 
-WHAT YOU CAN CHANGE (style only): ${styleDirectives || 'Upgrade to professional modern interior.'} Apply style changes ONLY to colors, materials, textures, finishes, and lighting.`.trim()
+STYLE: ${styleDirectives || 'Upgrade to professional modern interior with warm lighting.'}`.trim()
+        } else if (viewType === 'topDown') {
+          editPrompt = `This is a top-down aerial view of an architectural 3D model. It could be a building, a floor plan, an urban layout, or any architectural project seen from above.
+
+Transform it into a hyperrealistic top-down architectural visualization (as seen from a drone or satellite looking straight down).
+
+CRITICAL RULES:
+1. KEEP THE EXACT SAME TOP-DOWN CAMERA ANGLE — do NOT change to perspective, isometric, or any other angle.
+2. KEEP THE EXACT SAME LAYOUT — all structures, buildings, rooms, and elements must remain in the same positions.
+3. KEEP THE EXACT SAME PROPORTIONS — do not resize or move anything.
+4. Add realistic textures: concrete, grass, wood, stone, asphalt, rooftops, landscaping, etc.
+5. Add realistic lighting: natural sunlight with shadows.
+6. The result must look like a real aerial/drone photograph, NOT a 3D render.
+
+STYLE: ${styleDirectives || 'Professional architectural visualization with natural lighting.'}`.trim()
+        } else {
+          editPrompt = `This is an orbital/exterior 3D view of an architectural project. It could show buildings from outside, a housing development, a landscape, a neighborhood, or any architectural scene viewed from an elevated external perspective.
+
+Transform it into a hyperrealistic architectural photograph. Keep the EXACT SAME camera angle, perspective, and composition.
+
+Professional photography quality: ultra-realistic textures (brick, concrete, glass, wood, stone, vegetation), natural lighting with sun and shadows, atmospheric perspective, realistic sky.
+
+ABSOLUTE RULES:
+1. KEEP THE EXACT SAME CAMERA ANGLE AND PERSPECTIVE — do NOT change the viewpoint.
+2. KEEP THE EXACT SAME BUILDING/STRUCTURE LAYOUT — all buildings, structures, and elements stay in the same position.
+3. KEEP THE EXACT SAME PROPORTIONS — do not resize or move anything.
+4. DO NOT INVENT buildings, structures, or elements that are not in the original image.
+5. DO NOT CHANGE the architectural style or layout.
+
+STYLE: ${styleDirectives || 'Professional architectural exterior visualization with natural lighting and landscaping.'}`.trim()
+        }
         setLastAnalyzedPrompt(editPrompt)
         for (let i = 0; i < imageCount; i++) {
           setGeneratingProgress(i + 1)
@@ -255,7 +279,7 @@ WHAT YOU CAN CHANGE (style only): ${styleDirectives || 'Upgrade to professional 
         const analyzeRes = await fetch('/api/analyze-scene-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: compressedImage }),
+          body: JSON.stringify({ image: compressedImage, cameraMode: capturedCameraMode, viewType }),
         })
         const text = await analyzeRes.text()
         let analyzeData: Record<string, unknown>
@@ -353,26 +377,28 @@ WHAT YOU CAN CHANGE (style only): ${styleDirectives || 'Upgrade to professional 
         <div style={{ padding: 20, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {lastImage ? (
             <>
-              {viewType === 'topDown' && (
-                <div style={{
-                  padding: '12px 16px', background: 'rgba(255, 180, 50, 0.15)',
-                  borderRadius: 10, border: '1px solid rgba(255, 180, 50, 0.4)',
-                  display: 'flex', alignItems: 'flex-start', gap: 10,
-                }}>
-                  <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
-                  <div style={{ fontSize: 12, color: c.text, lineHeight: 1.5 }}>
-                    <strong>Vista cenital detectada.</strong> La IA funciona mucho mejor con una perspectiva 3D (ángulo inclinado donde se vean paredes, muebles y profundidad).
-                    Cierra este diálogo, rota la cámara arrastrando para obtener una vista 3D en perspectiva, y vuelve a generar.
-                  </div>
-                </div>
-              )}
+              <div style={{
+                padding: '10px 14px', background: capturedCameraMode === 'firstPerson'
+                  ? 'rgba(100, 200, 100, 0.12)' : 'rgba(100, 160, 255, 0.12)',
+                borderRadius: 10, border: `1px solid ${capturedCameraMode === 'firstPerson'
+                  ? 'rgba(100, 200, 100, 0.4)' : 'rgba(100, 160, 255, 0.4)'}`,
+                fontSize: 12, color: c.text, lineHeight: 1.5,
+              }}>
+                {capturedCameraMode === 'firstPerson' ? (
+                  <>Vista <strong>interior (primera persona)</strong> — El prompt está optimizado para interiores a nivel de los ojos.</>
+                ) : viewType === 'topDown' ? (
+                  <>Vista <strong>cenital (desde arriba)</strong> — El prompt se adapta a vistas aéreas. Para mejores resultados con interiores, usa el modo Caminar.</>
+                ) : (
+                  <>Vista <strong>orbital/exterior</strong> — El prompt se adapta a vistas exteriores y de conjunto. Para interiores a nivel de los ojos, usa el modo Caminar.</>
+                )}
+              </div>
               <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
                 <div style={{ flex: '0 0 200px' }}>
                   <div style={{ fontSize: 12, color: c.textMuted, marginBottom: 6 }}>
-                    Vista capturada {viewType === 'topDown' ? '(cenital — no recomendada)' : '(perspectiva 3D)'}
+                    Vista capturada ({capturedCameraMode === 'firstPerson' ? 'interior' : viewType === 'topDown' ? 'cenital' : 'orbital/exterior'})
                   </div>
                   <img src={lastImage} alt="Captura" style={{
-                    width: '100%', borderRadius: 8, border: `1px solid ${viewType === 'topDown' ? 'rgba(255, 180, 50, 0.6)' : c.border}`,
+                    width: '100%', borderRadius: 8, border: `1px solid ${c.border}`,
                   }} />
                   <button onClick={handleDownloadImage} style={{
                     width: '100%', marginTop: 8, padding: 8, fontSize: 12,

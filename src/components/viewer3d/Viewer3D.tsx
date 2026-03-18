@@ -524,7 +524,6 @@ function DoorMesh3D({ op, wallHeight, frameDepth, frameThick, sm, oy }: {
   const hh = op.height / 2
   const fd = frameDepth
   const ft = frameThick
-  const subtype = op.subtype as DoorSubtype
   const isDbl = subtype === 'double' || subtype === 'french'
   const isCorredera = subtype === 'sliding'
   const isPocket = subtype === 'pocket' || subtype === 'pocket_pladur'
@@ -3630,9 +3629,11 @@ function CapturePhoto() {
   const { gl, scene, camera, controls } = useThree()
   const captureRequest = useStore((s) => s.editor.captureRequest)
   const captureMode = useStore((s) => s.editor.captureMode ?? 'download')
+  const cameraMode = useStore((s) => s.editor.cameraMode)
   const clearCaptureRequest = useStore((s) => s.clearCaptureRequest)
   const setLastCapturedImage = useStore((s) => s.setLastCapturedImage)
   const setLastCapturedViewType = useStore((s) => s.setLastCapturedViewType)
+  const setLastCapturedCameraMode = useStore((s) => s.setLastCapturedCameraMode)
   const setRenderGenerationModalOpen = useStore((s) => s.setRenderGenerationModalOpen)
   const setIsCapturing = useStore((s) => s.setIsCapturing)
   const capturedRef = useRef(false)
@@ -3670,6 +3671,7 @@ function CapturePhoto() {
 
         if (captureMode === 'render') {
           setLastCapturedViewType(isTopDown ? 'topDown' : 'perspective')
+          setLastCapturedCameraMode(cameraMode)
           setLastCapturedImage(dataUrl)
           setRenderGenerationModalOpen(true)
         } else {
@@ -3689,6 +3691,7 @@ function CapturePhoto() {
 
         if (captureMode === 'render') {
           setLastCapturedViewType(isTopDown ? 'topDown' : 'perspective')
+          setLastCapturedCameraMode(cameraMode)
           setLastCapturedImage(dataUrl)
           setRenderGenerationModalOpen(true)
         } else {

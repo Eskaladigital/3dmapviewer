@@ -1,7 +1,62 @@
 /**
  * Vercel Serverless: POST /api/analyze-scene-image
  * GPT-4 Vision describe el espacio para reproducirlo en DALL·E
+ * Adapta el prompt según cameraMode (firstPerson vs orbit) y viewType (topDown vs perspective)
  */
+
+const PROMPT_FIRST_PERSON = `Esta imagen es una captura 3D desde PRIMERA PERSONA (vista interior a nivel de los ojos) de un proyecto arquitectónico. Objetivo: RENDER HIPERREALISTA tipo estudio de arquitectura (3DS Max + V-Ray).
+
+CRÍTICO: La precisión espacial es lo más importante. Describe la posición de cada objeto como si dibujaras un plano desde el punto de vista del observador.
+
+ESTRUCTURA OBLIGATORIA:
+
+1. PUNTO DE VISTA: Desde qué esquina o ángulo se ve la habitación (ej: esquina izquierda mirando hacia la derecha y al fondo).
+2. LADO IZQUIERDO DE LA IMAGEN: Lista todo lo que está a la izquierda con su posición exacta.
+3. LADO DERECHO DE LA IMAGEN: Lista todo lo que está a la derecha con su posición exacta.
+4. CENTRO / FONDO: Lo que está en el centro y al fondo.
+5. SUELO, TECHO, ILUMINACIÓN: Colores y elementos.
+
+Para cada elemento indica: posición relativa, color, material. La descripción debe permitir reproducir el espacio con la misma disposición exacta.
+
+Escribe en español. Sé exhaustivo.`
+
+const PROMPT_ORBIT_PERSPECTIVE = `Esta imagen es una captura 3D desde una VISTA ORBITAL/EXTERIOR en perspectiva de un proyecto arquitectónico. Puede mostrar: un edificio desde fuera, un conjunto de edificios, una urbanización, una vivienda vista desde el exterior, un paisaje con construcciones, o cualquier escena arquitectónica vista desde una perspectiva elevada exterior.
+
+Objetivo: RENDER HIPERREALISTA tipo estudio de arquitectura profesional.
+
+CRÍTICO: Describe EXACTAMENTE lo que ves, sin asumir que es un interior.
+
+ESTRUCTURA OBLIGATORIA:
+
+1. TIPO DE ESCENA: ¿Qué se ve? (edificio individual, conjunto de viviendas, urbanización, paisaje, etc.)
+2. PUNTO DE VISTA: Desde qué ángulo se ve la escena (ej: vista aérea a 45°, vista frontal del edificio, etc.)
+3. ELEMENTOS PRINCIPALES: Edificios, estructuras, carreteras, jardines, etc. con sus posiciones relativas.
+4. MATERIALES Y COLORES: Fachadas, tejados, suelos, vegetación, etc.
+5. ENTORNO: Vegetación, cielo, terreno, elementos urbanísticos.
+6. ILUMINACIÓN: Hora del día aparente, dirección de la luz.
+
+Para cada elemento indica: posición relativa, tamaño aproximado, color, material. La descripción debe permitir reproducir la escena con la misma disposición exacta.
+
+Escribe en español. Sé exhaustivo.`
+
+const PROMPT_TOP_DOWN = `Esta imagen es una captura 3D desde una VISTA CENITAL (desde arriba, mirando hacia abajo) de un proyecto arquitectónico. Puede ser: un plano de planta, una vista aérea de un edificio, una urbanización vista desde un dron, etc.
+
+Objetivo: RENDER HIPERREALISTA tipo fotografía aérea/dron profesional.
+
+CRÍTICO: Describe EXACTAMENTE lo que ves desde arriba, sin asumir que es un interior.
+
+ESTRUCTURA OBLIGATORIA:
+
+1. TIPO DE ESCENA: ¿Qué se ve desde arriba? (planta de una vivienda, tejado de un edificio, urbanización, etc.)
+2. DISTRIBUCIÓN: Cómo están organizados los elementos en el espacio (habitaciones, edificios, calles, etc.)
+3. ELEMENTOS VISIBLES: Todo lo que se ve desde arriba con sus posiciones relativas.
+4. MATERIALES Y COLORES: Suelos, tejados, vegetación, pavimentos, etc.
+5. ESCALA Y PROPORCIONES: Tamaños relativos de los elementos.
+
+Para cada elemento indica: posición relativa (arriba, abajo, izquierda, derecha, centro), color, material.
+
+Escribe en español. Sé exhaustivo.`
+
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
   if (req.method !== 'POST') {
@@ -13,31 +68,22 @@ export default async function handler(req, res) {
   }
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
-    const { image } = body
+    const { image, cameraMode, viewType } = body
     if (!image || typeof image !== 'string') {
       return res.status(400).json({ error: 'Falta la imagen (base64 o data URL)' })
     }
     const base64 = image.replace(/^data:image\/\w+;base64,/, '')
     const mime = image.match(/^data:(image\/\w+);/)?.[1] || 'image/png'
-    const prompt = `Esta imagen es una captura 3D de un proyecto de planificación de viviendas. Objetivo: RENDER HIPERREALISTA tipo estudio de arquitectura (3DS Max + V-Ray) con texturas ultra realistas y UBICACIÓN EXACTA de cada elemento.
 
-CRÍTICO: La precisión espacial es lo más importante. Describe la posición de cada objeto como si dibujaras un plano desde el punto de vista del observador.
+    let prompt
+    if (cameraMode === 'firstPerson') {
+      prompt = PROMPT_FIRST_PERSON
+    } else if (viewType === 'topDown') {
+      prompt = PROMPT_TOP_DOWN
+    } else {
+      prompt = PROMPT_ORBIT_PERSPECTIVE
+    }
 
-ESTRUCTURA OBLIGATORIA (sigue este orden):
-
-1. PUNTO DE VISTA: Desde qué esquina o ángulo se ve la habitación (ej: esquina izquierda mirando hacia la derecha y al fondo).
-
-2. LADO IZQUIERDO DE LA IMAGEN: Lista todo lo que está a la izquierda (pared, ventanas, muebles) con su posición exacta (ej: "sofá largo pegado a la pared izquierda, debajo de dos ventanas").
-
-3. LADO DERECHO DE LA IMAGEN: Lista todo lo que está a la derecha (ej: "estantería de madera oscura en la esquina derecha, televisor negro sobre mueble bajo a la izquierda de la estantería").
-
-4. CENTRO / FONDO: Lo que está en el centro y al fondo (ventana grande, mesa de centro sobre alfombra amarilla, etc.).
-
-5. SUELO, TECHO, ILUMINACIÓN: Colores y elementos (ventilador de techo, luces).
-
-Para cada mueble indica: posición relativa ("a la izquierda de", "junto a", "pegado a la pared X"), color, material. La ubicación debe ser tan precisa que alguien pueda colocar cada objeto en el mismo sitio.
-
-Escribe en español. Sé exhaustivo. La descripción debe permitir reproducir el espacio con la misma disposición exacta.`
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

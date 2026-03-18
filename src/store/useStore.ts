@@ -199,6 +199,8 @@ interface AppStore {
   setLastCapturedImage: (url: string | null) => void
   lastCapturedViewType: 'topDown' | 'perspective'
   setLastCapturedViewType: (v: 'topDown' | 'perspective') => void
+  lastCapturedCameraMode: 'orbit' | 'firstPerson'
+  setLastCapturedCameraMode: (v: 'orbit' | 'firstPerson') => void
   renderGenerationModalOpen: boolean
   setRenderGenerationModalOpen: (v: boolean) => void
   requestRenderGeneration: () => void
@@ -1234,6 +1236,8 @@ export const useStore = create<AppStore>((set, get) => ({
   setLastCapturedImage: (url) => set({ lastCapturedImage: url }),
   lastCapturedViewType: 'perspective' as 'topDown' | 'perspective',
   setLastCapturedViewType: (v) => set({ lastCapturedViewType: v }),
+  lastCapturedCameraMode: 'orbit' as 'orbit' | 'firstPerson',
+  setLastCapturedCameraMode: (v) => set({ lastCapturedCameraMode: v }),
   renderGenerationModalOpen: false,
   setRenderGenerationModalOpen: (v) => set({ renderGenerationModalOpen: v }),
   requestRenderGeneration: () => set((state) => ({
