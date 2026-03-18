@@ -822,17 +822,40 @@ const FurnitureMesh = memo(function FurnitureMesh({ item, onSelect, ceilingHeigh
       // ═══════════ CAMAS ═══════════
       case 'bed_double':
       case 'bed_single':
-      case 'bed_king': {
+      case 'bed_king':
+      case 'bed_canopy': {
         const frameH = 0.12, legH = 0.10
         const mattressH = 0.22, pillowH = 0.08
+        const isCanopy = effectiveItem.type === 'bed_canopy'
         return (
           <group>
             {[[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([lx, lz], i) => (
-              <mesh key={i} castShadow position={[lx * (w / 2 - 0.06), legH / 2, lz * (d / 2 - 0.06)]}>
-                <boxGeometry args={[0.06, legH, 0.06]} />
-                {woodDark}
-              </mesh>
+              <group key={i}>
+                <mesh castShadow position={[lx * (w / 2 - 0.06), legH / 2, lz * (d / 2 - 0.06)]}>
+                  <boxGeometry args={[0.06, legH, 0.06]} />
+                  {woodDark}
+                </mesh>
+                {isCanopy && (
+                  <mesh castShadow position={[lx * (w / 2 - 0.06), h / 2, lz * (d / 2 - 0.06)]}>
+                    <boxGeometry args={[0.04, h, 0.04]} />
+                    {woodDark}
+                  </mesh>
+                )}
+              </group>
             ))}
+            {isCanopy && (
+              <group position={[0, h, 0]}>
+                <mesh castShadow position={[0, 0, d / 2 - 0.06]}><boxGeometry args={[w, 0.04, 0.04]} />{woodDark}</mesh>
+                <mesh castShadow position={[0, 0, -d / 2 + 0.06]}><boxGeometry args={[w, 0.04, 0.04]} />{woodDark}</mesh>
+                <mesh castShadow position={[w / 2 - 0.06, 0, 0]}><boxGeometry args={[0.04, 0.04, d]} />{woodDark}</mesh>
+                <mesh castShadow position={[-w / 2 + 0.06, 0, 0]}><boxGeometry args={[0.04, 0.04, d]} />{woodDark}</mesh>
+                {/* Tela superior */}
+                <mesh castShadow position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                  <planeGeometry args={[w, d]} />
+                  <meshStandardMaterial color="#ffffff" roughness={0.9} transparent opacity={0.6} side={THREE.DoubleSide} />
+                </mesh>
+              </group>
+            )}
             <mesh castShadow receiveShadow position={[0, legH + frameH / 2, 0]}>
               <boxGeometry args={[w, frameH, d]} />
               {mat}
@@ -854,6 +877,176 @@ const FurnitureMesh = memo(function FurnitureMesh({ item, onSelect, ceilingHeigh
           </group>
         )
       }
+
+      // ═══════════ NUEVOS PREMIUM ═══════════
+      case 'piano_grand':
+        return (
+          <group>
+            {/* Patas */}
+            <mesh castShadow position={[-w * 0.35, h * 0.35, d * 0.35]}><cylinderGeometry args={[0.04, 0.03, h * 0.7]} />{mat}</mesh>
+            <mesh castShadow position={[w * 0.35, h * 0.35, d * 0.35]}><cylinderGeometry args={[0.04, 0.03, h * 0.7]} />{mat}</mesh>
+            <mesh castShadow position={[0, h * 0.35, -d * 0.35]}><cylinderGeometry args={[0.04, 0.03, h * 0.7]} />{mat}</mesh>
+            {/* Cuerpo */}
+            <mesh castShadow position={[0, h * 0.75, 0]}>
+              <boxGeometry args={[w, 0.2, d]} />
+              {mat}
+            </mesh>
+            {/* Tapa levantada */}
+            <mesh castShadow position={[w * 0.4, h * 0.85 + w * 0.4, 0]} rotation={[0, 0, Math.PI / 4]}>
+              <boxGeometry args={[w * 0.9, 0.03, d * 0.9]} />
+              {mat}
+            </mesh>
+            {/* Teclado */}
+            <mesh castShadow position={[0, h * 0.75, d * 0.45]}>
+              <boxGeometry args={[w * 0.8, 0.05, 0.15]} />
+              <meshStandardMaterial color="#FFFFFF" />
+            </mesh>
+          </group>
+        )
+
+      case 'piano_upright':
+        return (
+          <group>
+            {/* Cuerpo */}
+            <mesh castShadow position={[0, h / 2, -d * 0.1]}>
+              <boxGeometry args={[w, h, d * 0.8]} />
+              {mat}
+            </mesh>
+            {/* Teclado */}
+            <mesh castShadow position={[0, h * 0.6, d * 0.3]}>
+              <boxGeometry args={[w, 0.1, d * 0.4]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.62, d * 0.3]}>
+              <boxGeometry args={[w * 0.9, 0.02, d * 0.3]} />
+              <meshStandardMaterial color="#FFFFFF" />
+            </mesh>
+          </group>
+        )
+
+      case 'gym_treadmill':
+        return (
+          <group>
+            {/* Base (cinta) */}
+            <mesh castShadow position={[0, 0.1, 0]}>
+              <boxGeometry args={[w * 0.8, 0.1, d]} />
+              {matDark}
+            </mesh>
+            {/* Consola y soportes */}
+            <mesh castShadow position={[-w * 0.35, h / 2, d * 0.4]}>
+              <boxGeometry args={[0.05, h, 0.1]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[w * 0.35, h / 2, d * 0.4]}>
+              <boxGeometry args={[0.05, h, 0.1]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.9, d * 0.35]} rotation={[-Math.PI / 6, 0, 0]}>
+              <boxGeometry args={[w * 0.8, 0.3, 0.05]} />
+              <meshStandardMaterial color="#111" />
+            </mesh>
+          </group>
+        )
+
+      case 'gym_bike':
+        return (
+          <group>
+            {/* Base */}
+            <mesh castShadow position={[0, 0.05, 0]}>
+              <boxGeometry args={[w * 0.8, 0.1, d]} />
+              {matDark}
+            </mesh>
+            {/* Cuerpo */}
+            <mesh castShadow position={[0, h * 0.4, 0]}>
+              <boxGeometry args={[0.2, h * 0.6, d * 0.6]} />
+              {mat}
+            </mesh>
+            {/* Sillín */}
+            <mesh castShadow position={[0, h * 0.8, -d * 0.2]}>
+              <boxGeometry args={[0.2, 0.1, 0.3]} />
+              {cushionMat}
+            </mesh>
+            {/* Manillar */}
+            <mesh castShadow position={[0, h * 0.9, d * 0.3]}>
+              <boxGeometry args={[w, 0.05, 0.2]} />
+              {chromeMat}
+            </mesh>
+            {/* Rueda */}
+            <mesh castShadow position={[0, 0.3, d * 0.3]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.25, 0.25, 0.1, 16]} />
+              {chromeMat}
+            </mesh>
+          </group>
+        )
+
+      case 'gaming_desk':
+        return (
+          <group>
+            {/* Mesa */}
+            <mesh castShadow position={[0, h * 0.55, 0]}>
+              <boxGeometry args={[w, 0.05, d]} />
+              <meshStandardMaterial color="#111" />
+            </mesh>
+            {/* Patas RGB */}
+            <mesh castShadow position={[-w / 2 + 0.1, h * 0.275, 0]}>
+              <boxGeometry args={[0.05, h * 0.55, d * 0.8]} />
+              <meshStandardMaterial color="#222" emissive="#FF0055" emissiveIntensity={0.5} />
+            </mesh>
+            <mesh castShadow position={[w / 2 - 0.1, h * 0.275, 0]}>
+              <boxGeometry args={[0.05, h * 0.55, d * 0.8]} />
+              <meshStandardMaterial color="#222" emissive="#0055FF" emissiveIntensity={0.5} />
+            </mesh>
+            {/* PC Tower */}
+            <mesh castShadow position={[w / 2 - 0.3, h * 0.75, -d * 0.2]}>
+              <boxGeometry args={[0.25, 0.45, 0.5]} />
+              <meshStandardMaterial color="#111" emissive="#00FFCC" emissiveIntensity={0.8} />
+            </mesh>
+            {/* Monitores */}
+            <mesh castShadow position={[-0.2, h * 0.8, -d * 0.2]} rotation={[0, Math.PI / 12, 0]}>
+              <boxGeometry args={[0.6, 0.35, 0.02]} />
+              <meshStandardMaterial color="#000" />
+            </mesh>
+            <mesh castShadow position={[0.4, h * 0.8, -d * 0.2]} rotation={[0, -Math.PI / 12, 0]}>
+              <boxGeometry args={[0.6, 0.35, 0.02]} />
+              <meshStandardMaterial color="#000" />
+            </mesh>
+            {/* Silla Gaming (abstracta) */}
+            <mesh castShadow position={[0, h * 0.4, d * 0.2]}>
+              <boxGeometry args={[0.5, 0.1, 0.5]} />
+              <meshStandardMaterial color="#111" emissive="#FF0000" emissiveIntensity={0.2} />
+            </mesh>
+            <mesh castShadow position={[0, h * 0.8, d * 0.4]} rotation={[0.1, 0, 0]}>
+              <boxGeometry args={[0.5, 0.8, 0.1]} />
+              <meshStandardMaterial color="#111" emissive="#FF0000" emissiveIntensity={0.2} />
+            </mesh>
+          </group>
+        )
+
+      case 'hot_tub':
+        return (
+          <group>
+            {/* Exterior */}
+            <mesh castShadow receiveShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {woodDark}
+            </mesh>
+            {/* Interior agua */}
+            <mesh position={[0, h * 0.8, 0]}>
+              <boxGeometry args={[w * 0.85, 0.02, d * 0.85]} />
+              <meshPhysicalMaterial color="#44AAFF" transmission={0.9} opacity={0.8} transparent roughness={0.1} />
+            </mesh>
+            {/* Borde interior */}
+            <mesh castShadow position={[0, h * 0.9, 0]}>
+              <boxGeometry args={[w * 0.9, 0.2, d * 0.9]} />
+              {ceramicWhite}
+            </mesh>
+            {/* Hueco simulado para el borde interior (para que el agua se vea dentro) */}
+            <mesh position={[0, h * 0.9, 0]}>
+              <boxGeometry args={[w * 0.85, 0.21, d * 0.85]} />
+              <meshBasicMaterial color="#000" colorWrite={false} depthWrite={true} />
+            </mesh>
+          </group>
+        )
 
       case 'bunk_bed':
         return (

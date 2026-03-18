@@ -14,6 +14,7 @@ function useIsMobile() {
   return isMobile
 }
 import { jsPDF } from 'jspdf'
+import { Plus, Save, FolderOpen, Download, Image as ImageIcon, Sun, Moon, Map, Settings, Box, Undo2, Redo2, MoreHorizontal, Pencil } from 'lucide-react'
 import FloorPlanEditor from './components/editor2d/FloorPlanEditor'
 import ConfigPanel from './components/config/ConfigPanel'
 import Viewer3D from './components/viewer3d/Viewer3D'
@@ -289,11 +290,11 @@ function HeaderBar({ onToast, editor2dCanvasRef, compact }: { onToast: (msg: str
       <div style={{ ...h.actions, ...(compact ? { gap: 4 } : {}) }}>
         {compact && (
           <>
-            <button style={{ ...btnSmStyle, opacity: store.canUndo() ? 1 : 0.3 }} onClick={() => { store.undo(); forceRender(n => n + 1) }} disabled={!store.canUndo()} title="Deshacer">↩</button>
-            <button style={{ ...btnSmStyle, opacity: store.canRedo() ? 1 : 0.3 }} onClick={() => { store.redo(); forceRender(n => n + 1) }} disabled={!store.canRedo()} title="Rehacer">↪</button>
-            <button style={{ ...btnStyle, padding: '5px 10px' }} onClick={handleSave} title="Guardar">💾</button>
+            <button style={{ ...btnSmStyle, opacity: store.canUndo() ? 1 : 0.3 }} onClick={() => { store.undo(); forceRender(n => n + 1) }} disabled={!store.canUndo()} title="Deshacer"><Undo2 size={16} /></button>
+            <button style={{ ...btnSmStyle, opacity: store.canRedo() ? 1 : 0.3 }} onClick={() => { store.redo(); forceRender(n => n + 1) }} disabled={!store.canRedo()} title="Rehacer"><Redo2 size={16} /></button>
+            <button style={{ ...btnStyle, padding: '5px 10px' }} onClick={handleSave} title="Guardar"><Save size={16} /></button>
             <div style={{ position: 'relative' }} data-mobile-menu="true">
-              <button style={{ ...btnStyle, padding: '5px 10px' }} onClick={() => { setShowMobileMenu(v => !v); if (!showMobileMenu) handleOpenLoad() }} title="Más">⋯</button>
+              <button style={{ ...btnStyle, padding: '5px 10px' }} onClick={() => { setShowMobileMenu(v => !v); if (!showMobileMenu) handleOpenLoad() }} title="Más"><MoreHorizontal size={16} /></button>
               {showMobileMenu && (
                 <div ref={loadMenuRef} style={{ ...h.dropdown, right: 0, width: 240, maxHeight: '70vh' }}>
                   <div style={{ ...h.dropdownItem, borderBottom: `1px solid ${t.border}` }} onClick={() => { handleNew(); setShowMobileMenu(false) }}><span style={{ color: t.text }}>Nuevo vacío</span></div>
@@ -328,13 +329,13 @@ function HeaderBar({ onToast, editor2dCanvasRef, compact }: { onToast: (msg: str
           onClick={() => { store.undo(); forceRender(n => n + 1) }}
           disabled={!store.canUndo()}
           title="Deshacer (Ctrl+Z)"
-        >↩</button>
+        ><Undo2 size={16} /></button>
         <button
           style={{ ...btnSmStyle, opacity: store.canRedo() ? 1 : 0.3 }}
           onClick={() => { store.redo(); forceRender(n => n + 1) }}
           disabled={!store.canRedo()}
           title="Rehacer (Ctrl+Shift+Z)"
-        >↪</button>
+        ><Redo2 size={16} /></button>
 
         <div style={{ ...h.divider, background: t.border }} />
 
@@ -344,7 +345,7 @@ function HeaderBar({ onToast, editor2dCanvasRef, compact }: { onToast: (msg: str
             onClick={() => setShowNewMenu((v) => !v)}
             title="Nuevo proyecto o plantilla"
           >
-            <span style={h.btnIcon}>+</span> Nuevo
+            <span style={{...h.btnIcon, display: 'flex', alignItems: 'center'}}><Plus size={16} /></span> Nuevo
           </button>
           {showNewMenu && (
             <div ref={newMenuRef} style={{ ...h.dropdown, right: 0, width: 220 }}>
@@ -376,12 +377,12 @@ function HeaderBar({ onToast, editor2dCanvasRef, compact }: { onToast: (msg: str
         </div>
 
         <button style={btnStyle} onClick={handleSave} title="Guardar proyecto (Ctrl+S)">
-          <span style={h.btnIcon}>💾</span> Guardar
+          <span style={{...h.btnIcon, display: 'flex', alignItems: 'center'}}><Save size={16} /></span> Guardar
         </button>
 
         <div style={{ position: 'relative' }}>
           <button style={btnStyle} onClick={handleOpenLoad} title="Cargar proyecto guardado">
-            <span style={h.btnIcon}>📂</span> Cargar
+            <span style={{...h.btnIcon, display: 'flex', alignItems: 'center'}}><FolderOpen size={16} /></span> Cargar
           </button>
 
           {showLoad && (
@@ -414,7 +415,7 @@ function HeaderBar({ onToast, editor2dCanvasRef, compact }: { onToast: (msg: str
         <div style={{ ...h.divider, background: t.border }} />
 
         <button style={btnStyle} onClick={handleExport} title="Exportar JSON (Ctrl+E)">
-          <span style={h.btnIcon}>↗</span> Exportar
+          <span style={{...h.btnIcon, display: 'flex', alignItems: 'center'}}><Download size={16} /></span> Exportar
         </button>
 
         <div style={{ position: 'relative' }}>
@@ -423,7 +424,7 @@ function HeaderBar({ onToast, editor2dCanvasRef, compact }: { onToast: (msg: str
             onClick={() => setShowExportPlano((v) => !v)}
             title="Exportar plano 2D"
           >
-            <span style={h.btnIcon}>🖼</span> Plano
+            <span style={{...h.btnIcon, display: 'flex', alignItems: 'center'}}><ImageIcon size={16} /></span> Plano
           </button>
           {showExportPlano && (
             <div ref={exportPlanoMenuRef} style={{
@@ -449,7 +450,7 @@ function HeaderBar({ onToast, editor2dCanvasRef, compact }: { onToast: (msg: str
           onClick={store.toggleTheme}
           title={`Cambiar a modo ${theme === 'dark' ? 'claro' : 'oscuro'}`}
         >
-          <span style={{ fontSize: 15, lineHeight: 1 }}>{theme === 'dark' ? '☀️' : '🌙'}</span>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</span>
           <span>{theme === 'dark' ? 'Claro' : 'Oscuro'}</span>
         </button>
         </>
@@ -467,7 +468,9 @@ function getHeaderStyles(t: ThemeColors): Record<string, React.CSSProperties> {
       justifyContent: 'space-between',
       height: 44,
       minHeight: 44,
-      background: t.bgPanel,
+      background: t.bgPanel + 'cc',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
       borderBottom: `1px solid ${t.border}`,
       padding: '0 16px',
       zIndex: 50,
@@ -649,17 +652,19 @@ function ShortcutsBar() {
 type MobileTab = '2d' | 'panel' | '3d'
 
 function MobileTabBar({ active, onSelect, t }: { active: MobileTab; onSelect: (tab: MobileTab) => void; t: ThemeColors }) {
-  const tabs: { id: MobileTab; label: string; icon: string }[] = [
-    { id: '2d', label: 'Plano', icon: '📐' },
-    { id: 'panel', label: 'Panel', icon: '⚙️' },
-    { id: '3d', label: '3D', icon: '🏠' },
+  const tabs: { id: MobileTab; label: string; icon: React.ReactNode }[] = [
+    { id: '2d', label: 'Plano', icon: <Map size={20} /> },
+    { id: 'panel', label: 'Panel', icon: <Settings size={20} /> },
+    { id: '3d', label: '3D', icon: <Box size={20} /> },
   ]
   return (
     <nav style={{
       display: 'flex',
       alignItems: 'stretch',
       justifyContent: 'space-around',
-      background: t.bgPanel,
+      background: t.bgPanel + 'ee',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
       borderTop: `1px solid ${t.border}`,
       paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
       paddingTop: 8,

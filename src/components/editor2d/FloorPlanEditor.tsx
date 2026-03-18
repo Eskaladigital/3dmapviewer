@@ -401,6 +401,8 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
   const [openingPrompt, setOpeningPrompt] = useState<{
     wallId: string; position: number; widthCm: string; screenX: number; screenY: number
   } | null>(null)
+  const [touchPinchDist, setTouchPinchDist] = useState<number | null>(null)
+  const [touchPanMid, setTouchPanMid] = useState<Point | null>(null)
 
   const store = useStore()
   const floor = store.getActiveFloor()
@@ -497,7 +499,7 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
       ctx.restore()
     }
 
-    // Grid
+    // Grid (Dotted or dashed for more architectural blueprint look)
     const gridPx = editor.gridSizeMeters * SCALE
     const startX = Math.floor(-panOffset.x / zoom / gridPx) * gridPx - gridPx
     const startY = Math.floor(-panOffset.y / zoom / gridPx) * gridPx - gridPx
@@ -505,7 +507,8 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
     const endY = startY + (canvas.height / zoom) + gridPx * 2
 
     ctx.strokeStyle = tc.canvasGrid
-    ctx.lineWidth = 0.5
+    ctx.lineWidth = 1
+    ctx.setLineDash([2, 6]) // blueprint style
     for (let x = startX; x <= endX; x += gridPx) {
       ctx.beginPath()
       ctx.moveTo(x, startY)
@@ -518,6 +521,7 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
       ctx.lineTo(endX, y)
       ctx.stroke()
     }
+    ctx.setLineDash([])
 
     // Major grid lines (1m)
     const majorPx = SCALE
@@ -826,29 +830,52 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
       ctx.rotate((item.rotation * Math.PI) / 180)
 
       const planShape = getFurniturePlanShape(item.type, item)
-      ctx.fillStyle = isEraseHoverF ? '#EF5B5B33' : isSelected ? '#5B8DEF33' : item.color + '44'
-      ctx.strokeStyle = isEraseHoverF ? '#EF5B5B' : isSelected ? '#5B8DEF' : item.color || '#888'
-      ctx.lineWidth = isSelected ? 2 : 1
 
+      // Añadir sombra sutil para dar sensación de profundidad
+      if (!isEraseHoverF) {
+        ctx.shadowColor = theme === 'dark' ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.15)'
+        ctx.shadowBlur = 12
+        ctx.shadowOffsetY = 4
+      }
+
+      ctx.fillStyle = isEraseHoverF ? '#EF5B5B33' : isSelected ? '#5B8DEF33' : item.color + '44'
+      
       if (planShape && planShape.length > 0) {
+        // Dibujamos primero todos los rellenos con sombra
         planShape.forEach((part) => {
           if (part.type === 'rect') {
             const l = (part.x - 0.5 - part.w / 2) * w
             const t = (part.y - 0.5 - part.h / 2) * d
-            const pw = part.w * w
-            const ph = part.h * d
-            ctx.fillRect(l, t, pw, ph)
-            ctx.strokeRect(l, t, pw, ph)
+            ctx.fillRect(l, t, part.w * w, part.h * d)
           } else {
             const r = part.r * Math.min(w, d)
             ctx.beginPath()
             ctx.arc((part.x - 0.5) * w, (part.y - 0.5) * d, r, 0, Math.PI * 2)
             ctx.fill()
+          }
+        })
+        // Desactivamos sombra para los bordes
+        ctx.shadowColor = 'transparent'
+        ctx.strokeStyle = isEraseHoverF ? '#EF5B5B' : isSelected ? '#5B8DEF' : item.color || '#888'
+        ctx.lineWidth = isSelected ? 2 : 1
+        
+        planShape.forEach((part) => {
+          if (part.type === 'rect') {
+            const l = (part.x - 0.5 - part.w / 2) * w
+            const t = (part.y - 0.5 - part.h / 2) * d
+            ctx.strokeRect(l, t, part.w * w, part.h * d)
+          } else {
+            const r = part.r * Math.min(w, d)
+            ctx.beginPath()
+            ctx.arc((part.x - 0.5) * w, (part.y - 0.5) * d, r, 0, Math.PI * 2)
             ctx.stroke()
           }
         })
       } else {
         ctx.fillRect(-w / 2, -d / 2, w, d)
+        ctx.shadowColor = 'transparent'
+        ctx.strokeStyle = isEraseHoverF ? '#EF5B5B' : isSelected ? '#5B8DEF' : item.color || '#888'
+        ctx.lineWidth = isSelected ? 2 : 1
         ctx.strokeRect(-w / 2, -d / 2, w, d)
       }
 
@@ -1571,6 +1598,86 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
     setHoveredDraggable(false)
   }, [isMarqueeSelecting, marqueeStart, marqueeCurrent, editor.panOffset, editor.zoom, editor.viewRotationDeg, canvasSize.w, canvasSize.h, floor.furniture, store])
 
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Prevent default browser gestures like pull-to-refresh if possible
+    if (e.cancelable) e.preventDefault()
+    
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX
+      const dy = e.touches[0].clientY - e.touches[1].clientY
+      setTouchPinchDist(Math.sqrt(dx * dx + dy * dy))
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+      setTouchPanMid({ x: midX, y: midY })
+      setIsPanning(true)
+      setPanStart({ x: midX - editor.panOffset.x, y: midY - editor.panOffset.y })
+      return
+    }
+
+    if (e.touches.length === 1) {
+      const touch = e.touches[0]
+      const syntheticEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        button: 0,
+        ctrlKey: false,
+        shiftKey: false,
+        preventDefault: () => {},
+      } as unknown as React.MouseEvent
+      handleMouseDown(syntheticEvent)
+    }
+  }, [handleMouseDown, editor.panOffset])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && isPanning) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX
+      const dy = e.touches[0].clientY - e.touches[1].clientY
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+
+      if (touchPinchDist) {
+        const delta = dist / touchPinchDist
+        const newZoom = Math.max(0.2, Math.min(5, editor.zoom * delta))
+        if (Math.abs(newZoom - editor.zoom) > 0.01) {
+          store.setZoom(newZoom)
+          setTouchPinchDist(dist)
+        }
+      }
+
+      if (touchPanMid) {
+        store.setPan({
+          x: midX - panStart.x,
+          y: midY - panStart.y,
+        })
+      }
+      return
+    }
+
+    if (e.touches.length === 1) {
+      const touch = e.touches[0]
+      const syntheticEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        shiftKey: false,
+        preventDefault: () => {},
+      } as unknown as React.MouseEvent
+      handleMouseMove(syntheticEvent)
+    }
+  }, [isPanning, touchPinchDist, touchPanMid, editor.zoom, store, panStart, handleMouseMove])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      setTouchPinchDist(null)
+      setTouchPanMid(null)
+      setIsPanning(false)
+    }
+    if (e.touches.length === 0) {
+      handleMouseUp()
+    }
+  }, [handleMouseUp])
+
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
     const delta = e.deltaY > 0 ? 0.9 : 1.1
@@ -1781,6 +1888,10 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
         onContextMenu={handleRightClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         style={{
           cursor: draggingEndpoint ? 'grabbing'
             : editor.activeTool === 'wall' ? 'crosshair'
@@ -1788,6 +1899,7 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
             : editor.activeTool === 'select' ? (isMarqueeSelecting ? 'crosshair' : isRotating ? 'grabbing' : draggingFurniture ? 'grabbing' : 'default')
             : 'crosshair',
           display: 'block',
+          touchAction: 'none',
         }}
       />
       {/* Botón rotar vista top — abajo a la izquierda */}

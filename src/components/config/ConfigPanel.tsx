@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react'
+import { Sofa, ChefHat, BedDouble, Bath, Lightbulb, LayoutGrid, MousePointer2, Square, DoorOpen, AppWindow, Eraser, Wrench, PaintBucket, Layers, Plus, Trash2, Home, Upload, PenTool, CircleDashed, MoveHorizontal, DivideSquare, Maximize2, Columns, RectangleHorizontal, FoldHorizontal, Armchair, Bed, BedSingle, Tv, Monitor, Refrigerator, Microwave, Droplets, Flame, Snowflake, Wind, Shirt, Box, Coffee, Book, Library, Shield, Umbrella, Archive, Utensils, Music, Dumbbell, Gamepad2, Sprout } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { FURNITURE_CATALOG, MATERIALS, STYLE_PRESETS, OPENING_CATALOG, THEMES, MATERIAL_SECTION_LABELS, DEFAULT_SCENE_MATERIALS } from '@/types'
 import type { EditorTool, OpeningCatalogItem, ThemeColors, SceneMaterials, MaterialSlot } from '@/types'
@@ -6,12 +7,12 @@ import { loadFloorPlanFile, extractWallsFromDxf } from '@/utils/floorPlanImport'
 import { detectWallsWithOpenCV, isOpenCvReady } from '@/utils/opencvWallDetection'
 
 const CATEGORIES = [
-  { id: 'living', label: 'Salón', icon: '🛋️' },
-  { id: 'kitchen', label: 'Cocina', icon: '🍳' },
-  { id: 'bedroom', label: 'Dormitorio', icon: '🛏️' },
-  { id: 'bathroom', label: 'Baño', icon: '🚿' },
-  { id: 'lighting', label: 'Iluminación', icon: '💡' },
-  { id: 'general', label: 'General', icon: '🪴' },
+  { id: 'living', label: 'Salón', icon: <Sofa size={16} /> },
+  { id: 'kitchen', label: 'Cocina', icon: <ChefHat size={16} /> },
+  { id: 'bedroom', label: 'Dormitorio', icon: <BedDouble size={16} /> },
+  { id: 'bathroom', label: 'Baño', icon: <Bath size={16} /> },
+  { id: 'lighting', label: 'Iluminación', icon: <Lightbulb size={16} /> },
+  { id: 'general', label: 'General', icon: <LayoutGrid size={16} /> },
 ]
 
 const CONFIG_TABS = ['tools', 'furniture', 'style', 'floors'] as const
@@ -63,7 +64,7 @@ function EditableValue({
         value={inputVal}
         onChange={(e) => setInputVal(e.target.value)}
         onBlur={apply}
-        onKeyDown={(e) => { if (e.key === 'Enter') apply() }}
+        onKeyDown={(e) => { if (e.key === 'Enter') apply(); if (e.key === 'Escape') setEditing(false) }}
         autoFocus
         style={{
           ...style,
@@ -73,6 +74,8 @@ function EditableValue({
           borderRadius: 4,
           background: 'rgba(91,141,239,0.08)',
           outline: 'none',
+          color: '#5B8DEF',
+          fontWeight: 600,
         }}
       />
     )
@@ -81,6 +84,103 @@ function EditableValue({
     <span onClick={startEdit} style={{ ...style, cursor: 'text', minWidth: 52 }} title="Clic para editar valor">
       {value.toFixed(decimals)}{suffix}
     </span>
+  )
+}
+
+/** Custom styled slider for a premium look */
+const getOpeningIcon = (subtype: string, size = 20) => {
+  switch (subtype) {
+    case 'single': return <DoorOpen size={size} strokeWidth={1.5} />
+    case 'double': return <Columns size={size} strokeWidth={1.5} />
+    case 'sliding': return <MoveHorizontal size={size} strokeWidth={1.5} />
+    case 'pocket': case 'pocket_pladur': return <RectangleHorizontal size={size} strokeWidth={1.5} />
+    case 'bifold': return <FoldHorizontal size={size} strokeWidth={1.5} />
+    case 'arch': return <CircleDashed size={size} strokeWidth={1.5} />
+    case 'fixed': return <Square size={size} strokeWidth={1.5} />
+    case 'double_hung': case 'single_hung': return <DivideSquare size={size} strokeWidth={1.5} />
+    case 'bay': return <Maximize2 size={size} strokeWidth={1.5} />
+    default: return <AppWindow size={size} strokeWidth={1.5} />
+  }
+}
+
+const getFurnitureIcon = (type: string, category: string, size = 24) => {
+  const t = type.toLowerCase()
+  // Salón
+  if (t.includes('sofa') || t.includes('chaise')) return <Sofa size={size} strokeWidth={1.5} />
+  if (t.includes('armchair') || t.includes('recliner') || t.includes('pouf')) return <Armchair size={size} strokeWidth={1.5} />
+  if (t.includes('tv')) return <Tv size={size} strokeWidth={1.5} />
+  if (t.includes('book') || t.includes('library')) return <Library size={size} strokeWidth={1.5} />
+  if (t.includes('coffee') || t.includes('table')) return <Coffee size={size} strokeWidth={1.5} />
+  if (t.includes('fire') || t.includes('stove')) return <Flame size={size} strokeWidth={1.5} />
+  
+  // Cocina
+  if (t.includes('fridge')) return <Refrigerator size={size} strokeWidth={1.5} />
+  if (t.includes('cooktop') || t.includes('oven')) return <ChefHat size={size} strokeWidth={1.5} />
+  if (t.includes('hood') || t.includes('extractor')) return <Wind size={size} strokeWidth={1.5} />
+  if (t.includes('dishwasher') || t.includes('washer') || t.includes('washing')) return <Droplets size={size} strokeWidth={1.5} />
+  if (t.includes('dining')) return <Utensils size={size} strokeWidth={1.5} />
+  
+  // Dormitorio
+  if (t.includes('bed_single') || t.includes('crib') || t.includes('bunk') || t.includes('murphy')) return <BedSingle size={size} strokeWidth={1.5} />
+  if (t.includes('bed')) return <BedDouble size={size} strokeWidth={1.5} />
+  if (t.includes('wardrobe') || t.includes('dresser') || t.includes('coat')) return <Shirt size={size} strokeWidth={1.5} />
+  if (t.includes('desk') || t.includes('vanity')) return <Monitor size={size} strokeWidth={1.5} />
+  
+  // Baño
+  if (t.includes('toilet') || t.includes('bidet')) return <Bath size={size} strokeWidth={1.5} />
+  if (t.includes('bath')) return <Bath size={size} strokeWidth={1.5} />
+  if (t.includes('shower')) return <Droplets size={size} strokeWidth={1.5} />
+  if (t.includes('sink') || t.includes('vanity')) return <Droplets size={size} strokeWidth={1.5} />
+
+  // General / Otros
+  if (t.includes('plant') || t.includes('tree')) return <Sprout size={size} strokeWidth={1.5} />
+  if (t.includes('lamp') || t.includes('spotlight')) return <Lightbulb size={size} strokeWidth={1.5} />
+  if (t.includes('fan')) return <Wind size={size} strokeWidth={1.5} />
+  if (t.includes('art') || t.includes('mirror')) return <Square size={size} strokeWidth={1.5} />
+  if (t.includes('radiator') || t.includes('heater')) return <Flame size={size} strokeWidth={1.5} />
+  if (t.includes('air_conditioner')) return <Snowflake size={size} strokeWidth={1.5} />
+  if (t.includes('piano')) return <Music size={size} strokeWidth={1.5} />
+  if (t.includes('gym') || t.includes('treadmill') || t.includes('bike')) return <Dumbbell size={size} strokeWidth={1.5} />
+  if (t.includes('gaming')) return <Gamepad2 size={size} strokeWidth={1.5} />
+  if (t.includes('safe')) return <Shield size={size} strokeWidth={1.5} />
+  if (t.includes('umbrella')) return <Umbrella size={size} strokeWidth={1.5} />
+  if (t.includes('cabinet') || t.includes('box')) return <Archive size={size} strokeWidth={1.5} />
+
+  // Fallbacks por categoría
+  if (category === 'living') return <Sofa size={size} strokeWidth={1.5} />
+  if (category === 'kitchen') return <ChefHat size={size} strokeWidth={1.5} />
+  if (category === 'bedroom') return <BedDouble size={size} strokeWidth={1.5} />
+  if (category === 'bathroom') return <Bath size={size} strokeWidth={1.5} />
+  if (category === 'lighting') return <Lightbulb size={size} strokeWidth={1.5} />
+  return <Box size={size} strokeWidth={1.5} />
+}
+
+/** Custom styled slider for a premium look */
+function CustomSlider({
+  value, min, max, step, onChange, c
+}: { value: number; min: number; max: number; step: number; onChange: (v: number) => void; c: ThemeColors }) {
+  const percentage = ((value - min) / (max - min)) * 100
+  return (
+    <div style={{ position: 'relative', flex: 1, height: 20, display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'absolute', width: '100%', height: 4, background: c.border, borderRadius: 2 }} />
+      <div style={{ position: 'absolute', width: `${percentage}%`, height: 4, background: c.accent, borderRadius: 2 }} />
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{
+          position: 'absolute', width: '100%', height: '100%', opacity: 0, cursor: 'pointer', margin: 0
+        }}
+      />
+      <div style={{
+        position: 'absolute', left: `calc(${percentage}% - 6px)`, width: 12, height: 12,
+        background: '#fff', border: `2px solid ${c.accent}`, borderRadius: '50%',
+        pointerEvents: 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+      }} />
+    </div>
   )
 }
 
@@ -291,9 +391,10 @@ function ImportPlanoButton({ store, c, s }: { store: ReturnType<typeof useStore>
               marginTop: 0,
               background: 'linear-gradient(135deg, #5B8DEF22, #7B4DEF22)',
               borderColor: '#5B8DEF',
+              display: 'flex', flexDirection: 'row', gap: 6, justifyContent: 'center'
             }}
           >
-            ✨ Analizar plano (Visión + IA)
+            <Upload size={16} /> Analizar plano (Visión + IA)
           </button>
           <button
             onClick={() => store.setManualTraceModalOpen(true)}
@@ -303,15 +404,16 @@ function ImportPlanoButton({ store, c, s }: { store: ReturnType<typeof useStore>
               marginTop: 0,
               background: 'linear-gradient(135deg, #2a4a2a22, #3a6a3a22)',
               borderColor: '#4a8a4a',
+              display: 'flex', flexDirection: 'row', gap: 6, justifyContent: 'center'
             }}
           >
-            ✏️ Calcar manualmente
+            <PenTool size={16} /> Calcar manualmente
           </button>
           <button
             onClick={() => store.setFloorPlanCalibration({ points: [], waitingForMeters: false, measuredPixels: 0 })}
-            style={{ ...s.toolBtn, width: '100%', marginTop: 0 }}
+            style={{ ...s.toolBtn, width: '100%', marginTop: 0, display: 'flex', flexDirection: 'row', gap: 6, justifyContent: 'center' }}
           >
-            📐 Calibrar escala manual
+            <Square size={16} /> Calibrar escala manual
           </button>
           <button
             onClick={() => store.setFloorPlanBackground(null)}
@@ -329,13 +431,13 @@ function ImportPlanoButton({ store, c, s }: { store: ReturnType<typeof useStore>
   )
 }
 
-const TOOLS: { tool: EditorTool; label: string; icon: string }[] = [
-  { tool: 'select', label: 'Seleccionar', icon: '👆' },
-  { tool: 'wall', label: 'Pared', icon: '🧱' },
-  { tool: 'door', label: 'Puerta', icon: '🚪' },
-  { tool: 'window', label: 'Ventana', icon: '🪟' },
-  { tool: 'furniture', label: 'Muebles', icon: '🛋️' },
-  { tool: 'erase', label: 'Borrar', icon: '🗑️' },
+const TOOLS: { tool: EditorTool; label: string; icon: React.ReactNode }[] = [
+  { tool: 'select', label: 'Seleccionar', icon: <MousePointer2 size={20} /> },
+  { tool: 'wall', label: 'Pared', icon: <Square size={20} /> },
+  { tool: 'door', label: 'Puerta', icon: <DoorOpen size={20} /> },
+  { tool: 'window', label: 'Ventana', icon: <AppWindow size={20} /> },
+  { tool: 'furniture', label: 'Muebles', icon: <Sofa size={20} /> },
+  { tool: 'erase', label: 'Borrar', icon: <Eraser size={20} /> },
 ]
 
 export default function ConfigPanel() {
@@ -385,10 +487,10 @@ export default function ConfigPanel() {
             onClick={() => setConfigTab(tab)}
             style={{ ...s.tab, ...(configTab === tab ? s.tabActive : {}) }}
           >
-            {tab === 'tools' && '🔧'}
-            {tab === 'furniture' && '🛋️'}
-            {tab === 'style' && '🎨'}
-            {tab === 'floors' && '🏢'}
+            {tab === 'tools' && <Wrench size={18} />}
+            {tab === 'furniture' && <Sofa size={18} />}
+            {tab === 'style' && <PaintBucket size={18} />}
+            {tab === 'floors' && <Layers size={18} />}
             <span style={s.tabLabel}>
               {tab === 'tools' ? 'Herramientas' : tab === 'furniture' ? 'Muebles' : tab === 'style' ? 'Estilo' : 'Pisos'}
             </span>
@@ -399,14 +501,14 @@ export default function ConfigPanel() {
       <div style={s.content}>
         {configTab === 'tools' && (
           <>
-            <div style={s.section}>
-              <h3 style={s.sectionTitle}>Vista 2D</h3>
-              <div style={s.propRow}>
-                <span style={s.propLabel}>Rotación</span>
-                <input type="range" min={0} max={360} step={1} value={editor.viewRotationDeg ?? 0} onChange={(e) => store.setViewRotation(Number(e.target.value))} style={s.slider} />
-                <EditableValue value={editor.viewRotationDeg ?? 0} suffix="°" min={0} max={360} decimals={0} step={1} onChange={(v) => store.setViewRotation(v)} style={s.propValue} />
+              <div style={s.section}>
+                <h3 style={s.sectionTitle}>Vista 2D</h3>
+                <div style={s.propRow}>
+                  <span style={s.propLabel}>Rotación</span>
+                  <CustomSlider min={0} max={360} step={1} value={editor.viewRotationDeg ?? 0} onChange={(v) => store.setViewRotation(v)} c={c} />
+                  <EditableValue value={editor.viewRotationDeg ?? 0} suffix="°" min={0} max={360} decimals={0} step={1} onChange={(v) => store.setViewRotation(v)} style={s.propValue} />
+                </div>
               </div>
-            </div>
             <div style={s.section}>
               <h3 style={s.sectionTitle}>Herramientas</h3>
               <div style={s.toolGrid}>
@@ -486,8 +588,8 @@ export default function ConfigPanel() {
 
             {(editor.activeTool === 'door' || editor.activeTool === 'window') && (
               <div style={s.section}>
-                <h3 style={s.sectionTitle}>
-                  {editor.activeTool === 'door' ? '🚪 Tipo de puerta' : '🪟 Tipo de ventana'}
+                <h3 style={{ ...s.sectionTitle, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {editor.activeTool === 'door' ? <><DoorOpen size={16} /> Tipo de puerta</> : <><AppWindow size={16} /> Tipo de ventana</>}
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {OPENING_CATALOG.filter(cat => cat.type === editor.activeTool).map((item) => (
@@ -499,7 +601,9 @@ export default function ConfigPanel() {
                         ...(activeCatalogOpening?.subtype === item.subtype && activeCatalogOpening?.type === item.type ? s.openingOptionActive : {}),
                       }}
                     >
-                      <span style={{ fontSize: 18, minWidth: 28, textAlign: 'center' }}>{item.icon}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: activeCatalogOpening?.subtype === item.subtype && activeCatalogOpening?.type === item.type ? c.accent : c.bgInput, color: activeCatalogOpening?.subtype === item.subtype && activeCatalogOpening?.type === item.type ? '#fff' : c.text, borderRadius: 8 }}>
+                        {getOpeningIcon(item.subtype, 18)}
+                      </span>
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontSize: 13, color: c.text }}>{item.label}</div>
                         <div style={{ fontSize: 11, color: c.textMuted }}>
@@ -528,12 +632,12 @@ export default function ConfigPanel() {
                 </div>
                 <div style={s.propRow}>
                   <span style={s.propLabel}>Grosor</span>
-                  <input type="range" min={0.05} max={0.5} step={0.01} value={selectedWall.thickness} onChange={(e) => store.updateWall(selectedWall.id, { thickness: Number(e.target.value) })} style={s.slider} />
+                  <CustomSlider min={0.05} max={0.5} step={0.01} value={selectedWall.thickness} onChange={(v) => store.updateWall(selectedWall.id, { thickness: v })} c={c} />
                   <EditableValue value={selectedWall.thickness * 100} suffix="cm" min={5} max={50} decimals={0} onChange={(v) => store.updateWall(selectedWall.id, { thickness: v / 100 })} style={s.propValue} />
                 </div>
                 <div style={s.propRow}>
                   <span style={s.propLabel}>Altura</span>
-                  <input type="range" min={2.0} max={4.0} step={0.01} value={selectedWall.height} onChange={(e) => store.updateWall(selectedWall.id, { height: Number(e.target.value) })} style={s.slider} />
+                  <CustomSlider min={2.0} max={4.0} step={0.01} value={selectedWall.height} onChange={(v) => store.updateWall(selectedWall.id, { height: v })} c={c} />
                   <EditableValue value={selectedWall.height} suffix="m" min={2} max={4} decimals={2} onChange={(v) => store.updateWall(selectedWall.id, { height: v })} style={s.propValue} />
                 </div>
                 <div style={s.propRow}>
@@ -541,7 +645,7 @@ export default function ConfigPanel() {
                   <input type="color" value={selectedWall.color || '#FFFFFF'} onChange={(e) => store.updateWall(selectedWall.id, { color: e.target.value })} style={s.colorInput} />
                 </div>
                 <button onClick={() => { store.removeWall(selectedWall.id); store.setSelected(null, null) }} style={s.deleteBtn}>
-                  🗑️ Eliminar pared
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Trash2 size={16} /> Eliminar pared</div>
                 </button>
               </div>
             )}
@@ -551,18 +655,18 @@ export default function ConfigPanel() {
                 <h3 style={s.sectionTitle}>📐 {selectedOpening.type === 'door' ? 'Puerta' : 'Ventana'}</h3>
                 <div style={s.propRow}>
                   <span style={s.propLabel}>Ancho</span>
-                  <input type="range" min={0.4} max={3.0} step={0.01} value={selectedOpening.width} onChange={(e) => store.updateOpening(selectedOpening.id, { width: Number(e.target.value) })} style={s.slider} />
+                  <CustomSlider min={0.4} max={3.0} step={0.01} value={selectedOpening.width} onChange={(v) => store.updateOpening(selectedOpening.id, { width: v })} c={c} />
                   <EditableValue value={selectedOpening.width} suffix="m" min={0.4} max={3} decimals={2} onChange={(v) => store.updateOpening(selectedOpening.id, { width: v })} style={s.propValue} />
                 </div>
                 <div style={s.propRow}>
                   <span style={s.propLabel}>Alto</span>
-                  <input type="range" min={0.5} max={2.5} step={0.01} value={selectedOpening.height} onChange={(e) => store.updateOpening(selectedOpening.id, { height: Number(e.target.value) })} style={s.slider} />
+                  <CustomSlider min={0.5} max={2.5} step={0.01} value={selectedOpening.height} onChange={(v) => store.updateOpening(selectedOpening.id, { height: v })} c={c} />
                   <EditableValue value={selectedOpening.height} suffix="m" min={0.5} max={2.5} decimals={2} onChange={(v) => store.updateOpening(selectedOpening.id, { height: v })} style={s.propValue} />
                 </div>
                 {selectedOpening.type === 'window' && (
                   <div style={s.propRow}>
                     <span style={s.propLabel}>Elevación</span>
-                    <input type="range" min={0} max={2.0} step={0.01} value={selectedOpening.elevation} onChange={(e) => store.updateOpening(selectedOpening.id, { elevation: Number(e.target.value) })} style={s.slider} />
+                    <CustomSlider min={0} max={2.0} step={0.01} value={selectedOpening.elevation} onChange={(v) => store.updateOpening(selectedOpening.id, { elevation: v })} c={c} />
                     <EditableValue value={selectedOpening.elevation} suffix="m" min={0} max={2} decimals={2} onChange={(v) => store.updateOpening(selectedOpening.id, { elevation: v })} style={s.propValue} />
                   </div>
                 )}
@@ -570,7 +674,7 @@ export default function ConfigPanel() {
                   <span style={s.propLabel}>Color</span>
                   <input type="color" value={selectedOpening.color || (selectedOpening.type === 'door' ? '#8B6914' : '#F5F5F5')} onChange={(e) => store.updateOpening(selectedOpening.id, { color: e.target.value })} style={s.colorInput} />
                 </div>
-                {selectedOpening.type === 'door' && !['sliding', 'pocket', 'pocket_pladur'].includes(selectedOpening.subtype) && (
+                {selectedOpening.type === 'door' && !['sliding', 'pocket', 'pocket_pladur', 'arch'].includes(selectedOpening.subtype) && (
                   <>
                     <div style={s.propRow}>
                       <span style={s.propLabel}>Abre hacia</span>
@@ -601,7 +705,7 @@ export default function ConfigPanel() {
                   </>
                 )}
                 <button onClick={() => { store.removeOpening(selectedOpening.id); store.setSelected(null, null) }} style={s.deleteBtn}>
-                  🗑️ Eliminar
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Trash2 size={16} /> Eliminar</div>
                 </button>
               </div>
             )}
@@ -609,7 +713,14 @@ export default function ConfigPanel() {
             {(selectedFurniture || hasMultipleFurnitureSelected) && (
               <div style={s.section}>
                 <h3 style={s.sectionTitle}>
-                  {hasMultipleFurnitureSelected ? `📐 ${selectedFurnitureIds.length} muebles seleccionados` : `📐 ${selectedFurniture!.label}`}
+                  {hasMultipleFurnitureSelected ? (
+                    <>📐 {selectedFurnitureIds.length} muebles seleccionados</>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {getFurnitureIcon(selectedFurniture!.type, selectedFurniture!.category, 18)}
+                      {selectedFurniture!.label}
+                    </div>
+                  )}
                 </h3>
                 {hasMultipleFurnitureSelected && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
@@ -653,27 +764,27 @@ export default function ConfigPanel() {
                     )}
                     <div style={s.propRow}>
                       <span style={s.propLabel}>Ancho</span>
-                      <input type="range" min={0.2} max={5} step={0.01} value={selectedFurniture.width} onChange={(e) => store.updateFurniture(selectedFurniture.id, { width: Number(e.target.value) })} style={s.slider} />
+                      <CustomSlider min={0.2} max={5} step={0.01} value={selectedFurniture.width} onChange={(v) => store.updateFurniture(selectedFurniture.id, { width: v })} c={c} />
                       <EditableValue value={selectedFurniture.width} suffix="m" min={0.2} max={5} decimals={2} onChange={(v) => store.updateFurniture(selectedFurniture.id, { width: v })} style={s.propValue} />
                     </div>
                     <div style={s.propRow}>
                       <span style={s.propLabel}>Largo</span>
-                      <input type="range" min={0.2} max={5} step={0.01} value={selectedFurniture.depth} onChange={(e) => store.updateFurniture(selectedFurniture.id, { depth: Number(e.target.value) })} style={s.slider} />
+                      <CustomSlider min={0.2} max={5} step={0.01} value={selectedFurniture.depth} onChange={(v) => store.updateFurniture(selectedFurniture.id, { depth: v })} c={c} />
                       <EditableValue value={selectedFurniture.depth} suffix="m" min={0.2} max={5} decimals={2} onChange={(v) => store.updateFurniture(selectedFurniture.id, { depth: v })} style={s.propValue} />
                     </div>
                     <div style={s.propRow}>
                       <span style={s.propLabel}>Alto</span>
-                      <input type="range" min={0.05} max={4} step={0.01} value={selectedFurniture.height} onChange={(e) => store.updateFurniture(selectedFurniture.id, { height: Number(e.target.value) })} style={s.slider} />
+                      <CustomSlider min={0.05} max={4} step={0.01} value={selectedFurniture.height} onChange={(v) => store.updateFurniture(selectedFurniture.id, { height: v })} c={c} />
                       <EditableValue value={selectedFurniture.height} suffix="m" min={0.05} max={4} decimals={2} onChange={(v) => store.updateFurniture(selectedFurniture.id, { height: v })} style={s.propValue} />
                     </div>
                     <div style={s.propRow}>
                       <span style={s.propLabel}>Rotación</span>
-                      <input type="range" min={0} max={360} step={1} value={selectedFurniture.rotation} onChange={(e) => store.updateFurniture(selectedFurniture.id, { rotation: Number(e.target.value) })} style={s.slider} />
+                      <CustomSlider min={0} max={360} step={1} value={selectedFurniture.rotation} onChange={(v) => store.updateFurniture(selectedFurniture.id, { rotation: v })} c={c} />
                       <EditableValue value={selectedFurniture.rotation} suffix="°" min={0} max={360} decimals={0} step={1} onChange={(v) => store.updateFurniture(selectedFurniture.id, { rotation: v })} style={s.propValue} />
                     </div>
                     <div style={s.propRow}>
                       <span style={s.propLabel}>Altura sobre suelo</span>
-                      <input type="range" min={0} max={2.5} step={0.01} value={selectedFurniture.elevation ?? 0} onChange={(e) => store.updateFurniture(selectedFurniture.id, { elevation: Number(e.target.value) })} style={s.slider} title="0 = suelo, sube para encimeras, campanas, etc." />
+                      <CustomSlider min={0} max={2.5} step={0.01} value={selectedFurniture.elevation ?? 0} onChange={(v) => store.updateFurniture(selectedFurniture.id, { elevation: v })} c={c} />
                       <EditableValue value={selectedFurniture.elevation ?? 0} suffix="m" min={0} max={2.5} decimals={2} onChange={(v) => store.updateFurniture(selectedFurniture.id, { elevation: v })} style={s.propValue} />
                     </div>
                     <div style={s.propRow}>
@@ -686,7 +797,7 @@ export default function ConfigPanel() {
                   selectedFurnitureIds.forEach(id => store.removeFurniture(id))
                   store.setSelected(null, null)
                 }} style={s.deleteBtn}>
-                  🗑️ Eliminar{hasMultipleFurnitureSelected ? ` (${selectedFurnitureIds.length})` : ''}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Trash2 size={16} /> Eliminar{hasMultipleFurnitureSelected ? ` (${selectedFurnitureIds.length})` : ''}</div>
                 </button>
               </div>
             )}
@@ -766,8 +877,8 @@ export default function ConfigPanel() {
               <div style={s.furnitureGrid}>
                 {filtered.map((item) => (
                   <button key={item.type} onClick={() => selectFurnitureForPlacement(item)} style={{ ...s.furnitureCard, ...(editor.selectedFurnitureCatalog?.type === item.type ? s.furnitureCardActive : {}) }} title={`${item.label}\nClic en el mapa 2D para colocar\n${(item.width * 100).toFixed(0)}×${(item.depth * 100).toFixed(0)}×${(item.height * 100).toFixed(0)} cm`}>
-                    <div style={{ ...s.furnitureIconBg, backgroundColor: item.defaultColor + '18' }}>
-                      <span style={{ fontSize: 26 }}>{item.icon}</span>
+                    <div style={{ ...s.furnitureIconBg, backgroundColor: item.defaultColor + '18', color: item.defaultColor }}>
+                      {getFurnitureIcon(item.type, item.category, 24)}
                     </div>
                     <span style={s.furnitureName}>{item.label}</span>
                     <span style={s.furnitureSize}>{(item.width * 100).toFixed(0)}×{(item.depth * 100).toFixed(0)} cm</span>
@@ -891,7 +1002,7 @@ export default function ConfigPanel() {
                           <span style={{ fontSize: 11, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Rugosidad</span>
                           <span style={{ fontSize: 12, color: c.text, fontFamily: '"JetBrains Mono", monospace' }}>{(slot.roughness * 100).toFixed(0)}%</span>
                         </div>
-                        <input type="range" min={0} max={1} step={0.01} value={slot.roughness} onChange={(e) => store.updateMaterialSlot(key, { roughness: Number(e.target.value) })} style={s.slider} />
+                        <CustomSlider min={0} max={1} step={0.01} value={slot.roughness} onChange={(v) => store.updateMaterialSlot(key, { roughness: v })} c={c} />
                       </div>
 
                       {/* Metalness */}
@@ -900,7 +1011,7 @@ export default function ConfigPanel() {
                           <span style={{ fontSize: 11, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Metalicidad</span>
                           <span style={{ fontSize: 12, color: c.text, fontFamily: '"JetBrains Mono", monospace' }}>{(slot.metalness * 100).toFixed(0)}%</span>
                         </div>
-                        <input type="range" min={0} max={1} step={0.01} value={slot.metalness} onChange={(e) => store.updateMaterialSlot(key, { metalness: Number(e.target.value) })} style={s.slider} />
+                        <CustomSlider min={0} max={1} step={0.01} value={slot.metalness} onChange={(v) => store.updateMaterialSlot(key, { metalness: v })} c={c} />
                       </div>
 
                       {/* Opacity (mainly for glass) */}
@@ -910,7 +1021,7 @@ export default function ConfigPanel() {
                             <span style={{ fontSize: 11, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Opacidad</span>
                             <span style={{ fontSize: 12, color: c.text, fontFamily: '"JetBrains Mono", monospace' }}>{(slot.opacity * 100).toFixed(0)}%</span>
                           </div>
-                          <input type="range" min={0.05} max={1} step={0.01} value={slot.opacity} onChange={(e) => store.updateMaterialSlot(key, { opacity: Number(e.target.value) })} style={s.slider} />
+                          <CustomSlider min={0.05} max={1} step={0.01} value={slot.opacity} onChange={(v) => store.updateMaterialSlot(key, { opacity: v })} c={c} />
                         </div>
                       )}
 
@@ -921,7 +1032,7 @@ export default function ConfigPanel() {
                             <span style={{ fontSize: 11, color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Altura</span>
                             <span style={{ fontSize: 12, color: c.text, fontFamily: '"JetBrains Mono", monospace' }}>{((slot as any).height * 100).toFixed(0)} cm</span>
                           </div>
-                          <input type="range" min={0.02} max={0.20} step={0.01} value={(slot as any).height} onChange={(e) => store.updateMaterialSlot(key, { height: Number(e.target.value) })} style={s.slider} />
+                          <CustomSlider min={0.02} max={0.20} step={0.01} value={(slot as any).height} onChange={(v) => store.updateMaterialSlot(key, { height: v })} c={c} />
                         </div>
                       )}
                     </div>
@@ -940,7 +1051,7 @@ export default function ConfigPanel() {
                 {project.floors.map((f) => (
                   <div key={f.id} style={{ ...s.floorItem, ...(project.activeFloorId === f.id ? s.floorItemActive : {}) }}>
                     <button onClick={() => store.setActiveFloor(f.id)} style={s.floorBtn}>
-                      <span style={{ fontSize: 18 }}>🏠</span>
+                      <Home size={18} />
                       <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={s.floorName}>{f.name}</div>
                         <div style={s.floorMeta}>{f.walls.length} paredes · {f.furniture.length} muebles</div>

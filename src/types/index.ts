@@ -13,7 +13,7 @@ export interface Wall {
   color: string
 }
 
-export type DoorSubtype = 'single' | 'double' | 'sliding' | 'pocket' | 'pocket_pladur' | 'french' | 'entry' | 'bifold' | 'glass'
+export type DoorSubtype = 'single' | 'double' | 'sliding' | 'pocket' | 'pocket_pladur' | 'french' | 'entry' | 'bifold' | 'glass' | 'arch'
 export type WindowSubtype = 'fixed' | 'single_hung' | 'double_hung' | 'sliding' | 'casement' | 'bay'
 
 export type DoorOpenDirection = 'left' | 'right'
@@ -54,6 +54,7 @@ export const OPENING_CATALOG: OpeningCatalogItem[] = [
   { type: 'door', subtype: 'french', label: 'Francesa (cristal)', icon: '🪟', defaultWidth: 1.4, defaultHeight: 2.10, defaultElevation: 0, defaultColor: '#F5F5F5' },
   { type: 'door', subtype: 'glass', label: 'Puerta de cristal', icon: '🪟', defaultWidth: 0.90, defaultHeight: 2.10, defaultElevation: 0, defaultColor: '#E8F4F8' },
   { type: 'door', subtype: 'bifold', label: 'Plegable / Abordable', icon: '📂', defaultWidth: 1.2, defaultHeight: 2.03, defaultElevation: 0, defaultColor: '#D2B48C' },
+  { type: 'door', subtype: 'arch', label: 'Arco (Paso libre)', icon: '🌈', defaultWidth: 1.2, defaultHeight: 2.20, defaultElevation: 0, defaultColor: '#FFFFFF' },
   // Ventanas
   { type: 'window', subtype: 'fixed', label: 'Fija', icon: '▪️', defaultWidth: 1.2, defaultHeight: 1.2, defaultElevation: 0.9, defaultColor: '#F5F5F5' },
   { type: 'window', subtype: 'single_hung', label: 'Guillotina simple', icon: '⬆️', defaultWidth: 0.9, defaultHeight: 1.2, defaultElevation: 0.9, defaultColor: '#F5F5F5' },
@@ -244,6 +245,8 @@ export const FURNITURE_CATALOG: FurnitureCatalogItem[] = [
   { type: 'bookshelf', category: 'living', label: 'Estantería', icon: '📚', width: 0.8, depth: 0.35, height: 2.0, defaultColor: '#D2B48C', defaultMaterial: 'wood' },
   { type: 'bookshelf_wide', category: 'living', label: 'Librería ancha', icon: '📚', width: 1.6, depth: 0.35, height: 2.0, defaultColor: '#4A3728', defaultMaterial: 'wood' },
   { type: 'console_table', category: 'living', label: 'Consola', icon: '🔲', width: 1.2, depth: 0.35, height: 0.80, defaultColor: '#D2B48C', defaultMaterial: 'wood' },
+  { type: 'piano_grand', category: 'living', label: 'Piano de cola', icon: '🎹', width: 1.5, depth: 1.8, height: 1.0, defaultColor: '#1a1a1a', defaultMaterial: 'wood' },
+  { type: 'piano_upright', category: 'living', label: 'Piano de pared', icon: '🎹', width: 1.5, depth: 0.6, height: 1.3, defaultColor: '#3a2a1a', defaultMaterial: 'wood' },
   { type: 'floor_lamp', category: 'living', label: 'Lámpara de pie', icon: '💡', width: 0.4, depth: 0.4, height: 1.7, defaultColor: '#C0C0C0', defaultMaterial: 'metal' },
   { type: 'side_table_lamp', category: 'living', label: 'Mesita con lámpara', icon: '💡', width: 0.45, depth: 0.45, height: 1.05, defaultColor: '#C0C0C0', defaultMaterial: 'metal' },
   { type: 'rug', category: 'living', label: 'Alfombra rect.', icon: '🟫', width: 2.0, depth: 1.4, height: 0.02, defaultColor: '#B8860B', defaultMaterial: 'fabric' },
@@ -286,6 +289,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogItem[] = [
   // ─── Dormitorio ───
   { type: 'bed_double', category: 'bedroom', label: 'Cama 150cm', icon: '🛏️', width: 1.6, depth: 2.1, height: 0.55, defaultColor: '#F5F5DC', defaultMaterial: 'fabric' },
   { type: 'bed_king', category: 'bedroom', label: 'Cama 180cm', icon: '🛏️', width: 1.9, depth: 2.1, height: 0.55, defaultColor: '#E8DCC8', defaultMaterial: 'fabric' },
+  { type: 'bed_canopy', category: 'bedroom', label: 'Cama con dosel', icon: '🛏️', width: 1.9, depth: 2.1, height: 2.2, defaultColor: '#F5F5DC', defaultMaterial: 'wood' },
   { type: 'bed_single', category: 'bedroom', label: 'Cama 90cm', icon: '🛏️', width: 0.9, depth: 2.0, height: 0.55, defaultColor: '#F5F5DC', defaultMaterial: 'fabric' },
   { type: 'bunk_bed', category: 'bedroom', label: 'Litera', icon: '🛏️', width: 1.0, depth: 2.0, height: 1.7, defaultColor: '#D2B48C', defaultMaterial: 'wood' },
   { type: 'crib', category: 'bedroom', label: 'Cuna', icon: '🛏️', width: 0.7, depth: 1.3, height: 0.9, defaultColor: '#F5F5F5', defaultMaterial: 'wood' },
@@ -298,6 +302,7 @@ export const FURNITURE_CATALOG: FurnitureCatalogItem[] = [
   { type: 'desk', category: 'bedroom', label: 'Escritorio', icon: '🖥️', width: 1.4, depth: 0.7, height: 0.75, defaultColor: '#D2B48C', defaultMaterial: 'wood' },
   { type: 'desk_L', category: 'bedroom', label: 'Escritorio en L', icon: '🖥️', width: 1.6, depth: 1.4, height: 0.75, defaultColor: '#888888', defaultMaterial: 'metal' },
   { type: 'desk_chair', category: 'bedroom', label: 'Silla escritorio', icon: '🪑', width: 0.6, depth: 0.6, height: 1.1, defaultColor: '#2F2F2F', defaultMaterial: 'fabric' },
+  { type: 'gaming_desk', category: 'bedroom', label: 'Setup Gaming RGB', icon: '🖥️', width: 1.6, depth: 0.8, height: 1.4, defaultColor: '#111111', defaultMaterial: 'metal' },
   { type: 'mirror_standing', category: 'bedroom', label: 'Espejo de pie', icon: '🪞', width: 0.5, depth: 0.05, height: 1.7, defaultColor: '#C0C0C0', defaultMaterial: 'glass' },
   { type: 'murphy_bed', category: 'bedroom', label: 'Cama nido', icon: '🛏️', width: 1.0, depth: 0.2, height: 2.0, defaultColor: '#D2B48C', defaultMaterial: 'wood' },
   { type: 'wardrobe_small', category: 'bedroom', label: 'Armario pequeño', icon: '🚪', width: 1.0, depth: 0.5, height: 2.0, defaultColor: '#F5F5DC', defaultMaterial: 'wood' },
@@ -344,6 +349,9 @@ export const FURNITURE_CATALOG: FurnitureCatalogItem[] = [
   { type: 'tv_wall', category: 'general', label: 'Televisor mural', icon: '📺', width: 1.2, depth: 0.08, height: 0.7, defaultColor: '#1a1a1a', defaultMaterial: 'metal' },
   { type: 'file_cabinet', category: 'general', label: 'Archivador', icon: '📁', width: 0.45, depth: 0.5, height: 0.7, defaultColor: '#2F2F2F', defaultMaterial: 'metal' },
   { type: 'whiteboard', category: 'general', label: 'Pizarra', icon: '📋', width: 1.2, depth: 0.04, height: 0.9, defaultColor: '#F5F5F5', defaultMaterial: 'metal' },
+  { type: 'gym_treadmill', category: 'general', label: 'Cinta de correr', icon: '🏃', width: 0.8, depth: 1.8, height: 1.4, defaultColor: '#1a1a1a', defaultMaterial: 'metal' },
+  { type: 'gym_bike', category: 'general', label: 'Bicicleta estática', icon: '🚴', width: 0.6, depth: 1.2, height: 1.2, defaultColor: '#2a2a2a', defaultMaterial: 'metal' },
+  { type: 'hot_tub', category: 'bathroom', label: 'Jacuzzi / Spa', icon: '🛁', width: 2.0, depth: 2.0, height: 0.8, defaultColor: '#FFFFFF', defaultMaterial: 'ceramic' },
 ]
 
 export const ROOM_TYPES = [
