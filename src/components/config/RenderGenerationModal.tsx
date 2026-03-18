@@ -124,6 +124,7 @@ export default function RenderGenerationModal() {
   const theme = useStore((s) => s.theme)
   const open = useStore((s) => s.renderGenerationModalOpen)
   const lastImage = useStore((s) => s.lastCapturedImage)
+  const viewType = useStore((s) => s.lastCapturedViewType)
   const setRenderGenerationModalOpen = useStore((s) => s.setRenderGenerationModalOpen)
   const setLastCapturedImage = useStore((s) => s.setLastCapturedImage)
 
@@ -202,16 +203,31 @@ export default function RenderGenerationModal() {
         const styleDirectives = opts.extra?.trim()
           ? `CRITICAL — HIGHEST PRIORITY (override all other options): ${opts.extra.trim()}. ${baseDirectives.join(' ')}`
           : baseDirectives.join(' ')
-        const editPrompt = `Transform this 3D interior render into a hyperrealistic architectural photograph (Autodesk 3DS Max + V-Ray quality: ultra-realistic textures, physical lighting, soft shadows, reflections, photorealistic finishes).
+        const editPrompt = viewType === 'topDown'
+          ? `This is a top-down floor plan view of an interior space. Transform it into a hyperrealistic top-down architectural visualization (as seen from directly above, like a drone shot looking straight down).
 
-ABSOLUTE RULES — VIOLATING ANY OF THESE RUINS THE IMAGE:
-1. EXACT SAME NUMBER of furniture pieces — count every item in the original and reproduce exactly that count. Do NOT add extra chairs, tables, lamps, or any object that is not in the original.
-2. EXACT SAME POSITIONS — every piece of furniture must stay in its exact location. Left stays left, right stays right. Do NOT move anything.
-3. EXACT SAME ROOM SHAPE — walls, doors, windows must remain identical in position, size and count.
-4. DO NOT INVENT — if something is not visible in the original image, do NOT add it. No extra decorations, no extra furniture, no duplicated items.
-5. DO NOT DUPLICATE — if there is 1 sofa, render exactly 1 sofa. If there are 4 chairs, render exactly 4 chairs. Never 2 sofas or 6 chairs.
+CRITICAL RULES:
+1. KEEP THE EXACT SAME TOP-DOWN CAMERA ANGLE — do NOT change to a perspective or isometric view.
+2. KEEP THE EXACT SAME ROOM LAYOUT — walls, rooms, doors, and windows must remain in the same positions.
+3. KEEP THE EXACT SAME FURNITURE POSITIONS — every object stays where it is.
+4. Add realistic textures: wood floors with visible grain, marble counters, fabric sofas, realistic carpet, etc.
+5. Add realistic lighting: soft ambient light from above, shadows cast by furniture.
+6. The result must look like a real architectural overhead photograph, NOT a 3D render.
 
-WHAT YOU CAN CHANGE (style only): ${styleDirectives || 'Upgrade to professional modern interior.'} Apply these style changes ONLY to colors, materials, textures, finishes, and lighting. The spatial layout and furniture count must remain IDENTICAL to the source image.`.trim()
+${styleDirectives ? `STYLE: ${styleDirectives}` : 'STYLE: Modern professional interior with warm lighting.'}`.trim()
+          : `Transform this 3D interior render into a hyperrealistic architectural photograph. Keep the EXACT SAME camera angle, perspective, and composition. The output must look like a real photograph taken from the EXACT SAME viewpoint.
+
+Autodesk 3DS Max + V-Ray quality: ultra-realistic material textures, physical lighting, soft shadows, natural reflections, photorealistic finishes.
+
+ABSOLUTE RULES — VIOLATING ANY RUINS THE IMAGE:
+1. KEEP THE EXACT SAME CAMERA ANGLE AND PERSPECTIVE — do NOT change the viewpoint.
+2. EXACT SAME NUMBER of furniture pieces — count every item and reproduce exactly that count.
+3. EXACT SAME POSITIONS — every piece of furniture stays in its exact location.
+4. EXACT SAME ROOM SHAPE — walls, doors, windows identical in position, size and count.
+5. DO NOT INVENT — if something is not visible, do NOT add it.
+6. DO NOT DUPLICATE — if there is 1 sofa, render exactly 1. If there are 4 chairs, exactly 4.
+
+WHAT YOU CAN CHANGE (style only): ${styleDirectives || 'Upgrade to professional modern interior.'} Apply style changes ONLY to colors, materials, textures, finishes, and lighting.`.trim()
         setLastAnalyzedPrompt(editPrompt)
         for (let i = 0; i < imageCount; i++) {
           setGeneratingProgress(i + 1)
@@ -337,11 +353,26 @@ WHAT YOU CAN CHANGE (style only): ${styleDirectives || 'Upgrade to professional 
         <div style={{ padding: 20, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {lastImage ? (
             <>
+              {viewType === 'topDown' && (
+                <div style={{
+                  padding: '12px 16px', background: 'rgba(255, 180, 50, 0.15)',
+                  borderRadius: 10, border: '1px solid rgba(255, 180, 50, 0.4)',
+                  display: 'flex', alignItems: 'flex-start', gap: 10,
+                }}>
+                  <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+                  <div style={{ fontSize: 12, color: c.text, lineHeight: 1.5 }}>
+                    <strong>Vista cenital detectada.</strong> La IA funciona mucho mejor con una perspectiva 3D (ángulo inclinado donde se vean paredes, muebles y profundidad).
+                    Cierra este diálogo, rota la cámara arrastrando para obtener una vista 3D en perspectiva, y vuelve a generar.
+                  </div>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
                 <div style={{ flex: '0 0 200px' }}>
-                  <div style={{ fontSize: 12, color: c.textMuted, marginBottom: 6 }}>Vista capturada</div>
+                  <div style={{ fontSize: 12, color: c.textMuted, marginBottom: 6 }}>
+                    Vista capturada {viewType === 'topDown' ? '(cenital — no recomendada)' : '(perspectiva 3D)'}
+                  </div>
                   <img src={lastImage} alt="Captura" style={{
-                    width: '100%', borderRadius: 8, border: `1px solid ${c.border}`,
+                    width: '100%', borderRadius: 8, border: `1px solid ${viewType === 'topDown' ? 'rgba(255, 180, 50, 0.6)' : c.border}`,
                   }} />
                   <button onClick={handleDownloadImage} style={{
                     width: '100%', marginTop: 8, padding: 8, fontSize: 12,

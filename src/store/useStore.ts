@@ -197,6 +197,8 @@ interface AppStore {
   // Generación de renders con IA
   lastCapturedImage: string | null
   setLastCapturedImage: (url: string | null) => void
+  lastCapturedViewType: 'topDown' | 'perspective'
+  setLastCapturedViewType: (v: 'topDown' | 'perspective') => void
   renderGenerationModalOpen: boolean
   setRenderGenerationModalOpen: (v: boolean) => void
   requestRenderGeneration: () => void
@@ -1230,6 +1232,8 @@ export const useStore = create<AppStore>((set, get) => ({
   // Generación de renders con IA
   lastCapturedImage: null as string | null,
   setLastCapturedImage: (url) => set({ lastCapturedImage: url }),
+  lastCapturedViewType: 'perspective' as 'topDown' | 'perspective',
+  setLastCapturedViewType: (v) => set({ lastCapturedViewType: v }),
   renderGenerationModalOpen: false,
   setRenderGenerationModalOpen: (v) => set({ renderGenerationModalOpen: v }),
   requestRenderGeneration: () => set((state) => ({

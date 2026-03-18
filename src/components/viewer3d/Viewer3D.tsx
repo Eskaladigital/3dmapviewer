@@ -1,4 +1,5 @@
 import React, { useRef, useMemo, useState, useCallback, useEffect, memo } from 'react'
+import { Camera, Sunrise, Sun, SunDim, Sunset, Moon, MoonStar, Eye, Move, Grid3x3, CheckSquare, Maximize, ArrowUp, ArrowRight, ArrowDown, MapPin, Save, Image as ImageIcon, Wand2 } from 'lucide-react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import {
   OrbitControls,
@@ -348,11 +349,22 @@ const WallMesh = memo(function WallMesh({ wall, openings }: { wall: Wall; openin
       
       // Hueco con sentido contrario (counter-clockwise)
       const hole = new THREE.Path()
-      hole.moveTo(ox - halfW, op.elevation)
-      hole.lineTo(ox - halfW, op.elevation + op.height)
-      hole.lineTo(ox + halfW, op.elevation + op.height)
-      hole.lineTo(ox + halfW, op.elevation)
-      hole.closePath()
+      if (op.subtype === 'arch') {
+        const radius = halfW
+        const straightHeight = op.height - radius
+        hole.moveTo(ox - halfW, op.elevation)
+        hole.lineTo(ox - halfW, op.elevation + straightHeight)
+        // Arco superior: center=(ox, elevation+straightHeight), r=radius, start=PI, end=0
+        hole.absarc(ox, op.elevation + straightHeight, radius, Math.PI, 0, true)
+        hole.lineTo(ox + halfW, op.elevation)
+        hole.closePath()
+      } else {
+        hole.moveTo(ox - halfW, op.elevation)
+        hole.lineTo(ox - halfW, op.elevation + op.height)
+        hole.lineTo(ox + halfW, op.elevation + op.height)
+        hole.lineTo(ox + halfW, op.elevation)
+        hole.closePath()
+      }
       shape.holes.push(hole)
     }
 
@@ -504,6 +516,10 @@ function WindowMesh3D({ op, frameDepth, frameThick, sm }: {
 function DoorMesh3D({ op, wallHeight, frameDepth, frameThick, sm, oy }: {
   op: WallOpening; wallHeight: number; frameDepth: number; frameThick: number; sm: SceneMaterials; oy: number
 }) {
+  const subtype = op.subtype as DoorSubtype
+  // Los arcos no tienen marco ni puerta
+  if (subtype === 'arch') return null
+
   const hw = op.width / 2
   const hh = op.height / 2
   const fd = frameDepth
@@ -3611,11 +3627,12 @@ const CAPTURE_WIDTH = 1920
 const CAPTURE_HEIGHT = 1080
 
 function CapturePhoto() {
-  const { gl, scene, camera } = useThree()
+  const { gl, scene, camera, controls } = useThree()
   const captureRequest = useStore((s) => s.editor.captureRequest)
   const captureMode = useStore((s) => s.editor.captureMode ?? 'download')
   const clearCaptureRequest = useStore((s) => s.clearCaptureRequest)
   const setLastCapturedImage = useStore((s) => s.setLastCapturedImage)
+  const setLastCapturedViewType = useStore((s) => s.setLastCapturedViewType)
   const setRenderGenerationModalOpen = useStore((s) => s.setRenderGenerationModalOpen)
   const setIsCapturing = useStore((s) => s.setIsCapturing)
   const capturedRef = useRef(false)
@@ -3625,36 +3642,34 @@ function CapturePhoto() {
     capturedRef.current = true
     setIsCapturing(true)
 
+    const ctrl = controls as THREE.OrbitControls | null
+    const polarAngle = ctrl?.getPolarAngle?.() ?? Math.PI / 4
+    const isTopDown = polarAngle < 0.35 // < ~20° from vertical = cenital
+
     requestAnimationFrame(() => {
-      // Guardar tamaño original
       const origW = gl.domElement.width
       const origH = gl.domElement.height
       const origPixelRatio = gl.getPixelRatio()
 
-      // Ajustar a 16:9 para la captura
       gl.setPixelRatio(1)
       gl.setSize(CAPTURE_WIDTH, CAPTURE_HEIGHT, false)
 
-      // Ajustar cámara al nuevo aspecto
       if ((camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
         const cam = camera as THREE.PerspectiveCamera
         const origAspect = cam.aspect
         cam.aspect = CAPTURE_WIDTH / CAPTURE_HEIGHT
         cam.updateProjectionMatrix()
 
-        // Renderizar un frame en 16:9
         gl.render(scene, camera)
         const dataUrl = gl.domElement.toDataURL('image/png')
 
-        // Restaurar cámara
         cam.aspect = origAspect
         cam.updateProjectionMatrix()
-      
-        // Restaurar renderer
         gl.setPixelRatio(origPixelRatio)
         gl.setSize(origW / origPixelRatio, origH / origPixelRatio, false)
 
         if (captureMode === 'render') {
+          setLastCapturedViewType(isTopDown ? 'topDown' : 'perspective')
           setLastCapturedImage(dataUrl)
           setRenderGenerationModalOpen(true)
         } else {
@@ -3667,13 +3682,13 @@ function CapturePhoto() {
           document.body.removeChild(a)
         }
       } else {
-        // Fallback para cámaras no-perspectiva
         gl.render(scene, camera)
         const dataUrl = gl.domElement.toDataURL('image/png')
         gl.setPixelRatio(origPixelRatio)
         gl.setSize(origW / origPixelRatio, origH / origPixelRatio, false)
 
         if (captureMode === 'render') {
+          setLastCapturedViewType(isTopDown ? 'topDown' : 'perspective')
           setLastCapturedImage(dataUrl)
           setRenderGenerationModalOpen(true)
         } else {
@@ -3787,6 +3802,7 @@ function Scene() {
       <CameraFovUpdater />
       <Sky sunPosition={sunPosition} />
       <ambientLight intensity={ambientIntensity} color={isNight ? '#8090c0' : '#ffffff'} />
+      <Environment preset={isNight ? "night" : "apartment"} environmentIntensity={0.5} />
       <directionalLight
         position={sunPosition}
         intensity={sunIntensityInterior}
@@ -4067,7 +4083,7 @@ function VirtualLookPad() {
       onContextMenu={e => e.preventDefault()}
       title="Arrastrar para mirar (izq/der, arriba/abajo)"
     >
-      <span style={{ fontSize: 24, opacity: 0.5 }}>👁</span>
+      <Eye size={32} opacity={0.5} />
     </div>
   )
 }
@@ -4099,9 +4115,9 @@ function Viewer3DFloatingMenu() {
     return (
       <div style={{
         position: 'absolute', bottom: 16, right: 16,
-        ...card, padding: '8px 12px', cursor: 'pointer',
+        ...card, padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center'
       }} onClick={() => setCollapsed(false)} title="Abrir controles Vista 3D">
-        <span style={{ fontSize: 14 }}>📷</span>
+        <Camera size={16} />
         <span style={{ marginLeft: 6, fontSize: 12, color: c.text }}>Vista 3D</span>
       </div>
     )
@@ -4113,7 +4129,7 @@ function Viewer3DFloatingMenu() {
       ...card, padding: '14px 16px', width: 300, minWidth: 300, maxHeight: '70vh', overflowY: 'auto', overflowX: 'hidden',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>📷 Vista 3D</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: c.text, display: 'flex', alignItems: 'center', gap: 6 }}><Camera size={16} /> Vista 3D</span>
         <button onClick={() => setCollapsed(true)} style={{ ...btn, padding: '4px 8px', fontSize: 14 }} title="Colapsar">−</button>
       </div>
 
@@ -4121,8 +4137,8 @@ function Viewer3DFloatingMenu() {
       <div style={{ marginBottom: 12 }}>
         <div style={{ ...label, marginBottom: 6 }}>Modo</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => store.setCameraMode('orbit')} style={editor.cameraMode === 'orbit' ? btnActive : btn}>🖱️ Orbital</button>
-          <button onClick={() => store.setCameraMode('firstPerson')} style={editor.cameraMode === 'firstPerson' ? btnActive : btn}>🚶 Caminar</button>
+          <button onClick={() => store.setCameraMode('orbit')} style={{ ...(editor.cameraMode === 'orbit' ? btnActive : btn), display: 'flex', alignItems: 'center', gap: 6 }}><Move size={14} /> Orbital</button>
+          <button onClick={() => store.setCameraMode('firstPerson')} style={{ ...(editor.cameraMode === 'firstPerson' ? btnActive : btn), display: 'flex', alignItems: 'center', gap: 6 }}><Eye size={14} /> Caminar</button>
         </div>
       </div>
 
@@ -4133,7 +4149,7 @@ function Viewer3DFloatingMenu() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             {(['front', 'side', 'top', 'isometric'] as const).map((p) => (
               <button key={p} onClick={() => store.setCameraPresetRequest(p)} style={btn} title={p === 'front' ? 'Frontal' : p === 'side' ? 'Lateral' : p === 'top' ? 'Cenital' : 'Isométrica'}>
-                {p === 'front' ? '⬆️' : p === 'side' ? '➡️' : p === 'top' ? '🔝' : '📐'}
+                {p === 'front' ? <ArrowUp size={16} /> : p === 'side' ? <ArrowRight size={16} /> : p === 'top' ? <ArrowDown size={16} /> : <Grid3x3 size={16} />}
               </button>
             ))}
           </div>
@@ -4145,14 +4161,14 @@ function Viewer3DFloatingMenu() {
         <div style={{ ...label, marginBottom: 6 }}>Iluminación</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {[
-            { h: 6, l: '🌅', t: 'Amanecer' },
-            { h: 10, l: '☀️', t: 'Mañana' },
-            { h: 13, l: '🌞', t: 'Mediodía' },
-            { h: 17, l: '🌆', t: 'Tarde' },
-            { h: 20, l: '🌙', t: 'Atardecer' },
-            { h: 23, l: '🌃', t: 'Noche' },
+            { h: 6, l: <Sunrise size={16} />, t: 'Amanecer' },
+            { h: 10, l: <Sun size={16} />, t: 'Mañana' },
+            { h: 13, l: <SunDim size={16} />, t: 'Mediodía' },
+            { h: 17, l: <Sunset size={16} />, t: 'Tarde' },
+            { h: 20, l: <Moon size={16} />, t: 'Atardecer' },
+            { h: 23, l: <MoonStar size={16} />, t: 'Noche' },
           ].map(({ h, l, t }) => (
-            <button key={h} onClick={() => store.setTimeOfDay(h)} style={editor.timeOfDay === h ? btnActive : btn} title={t}>{l}</button>
+            <button key={h} onClick={() => store.setTimeOfDay(h)} style={{ ...(editor.timeOfDay === h ? btnActive : btn), display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t}>{l}</button>
           ))}
         </div>
       </div>
@@ -4214,9 +4230,9 @@ function Viewer3DFloatingMenu() {
       </div>
 
       <div style={{ borderTop: `1px solid ${c.border}`, margin: '12px 0', paddingTop: 12 }}>
-        <div style={{ ...label, marginBottom: 6 }}>☀️ Hora</div>
+        <div style={{ ...label, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}><Sun size={14} /> Hora</div>
         <input type="range" min={0} max={24} step={1} value={editor.timeOfDay} onChange={(e) => store.setTimeOfDay(Number(e.target.value))} style={{ width: '100%', accentColor: c.accent }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: c.textMuted, marginTop: 2 }}><span>🌙</span><span>☀️</span><span>🌙</span></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: c.textMuted, marginTop: 2 }}><span><Moon size={12} /></span><span><Sun size={12} /></span><span><Moon size={12} /></span></div>
       </div>
 
       <div style={row}>
@@ -4240,9 +4256,9 @@ function Viewer3DFloatingMenu() {
         <div style={{ marginTop: 12, marginBottom: 8 }}>
           <div style={{ ...label, marginBottom: 6 }}>Cámara</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button onClick={() => store.saveCameraPosition()} style={btn}>💾 Guardar</button>
+            <button onClick={() => store.saveCameraPosition()} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6 }}><Save size={14} /> Guardar</button>
             {store.savedCameraPositions.map((_, i) => (
-              <button key={i} onClick={() => store.restoreCameraPosition(i)} style={btn}>📍 {i + 1}</button>
+              <button key={i} onClick={() => store.restoreCameraPosition(i)} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 6 }}><MapPin size={14} /> {i + 1}</button>
             ))}
           </div>
         </div>
@@ -4258,14 +4274,16 @@ function Viewer3DFloatingMenu() {
       <button onClick={() => store.requestCapture()} style={{
         width: '100%', marginTop: 12, padding: '10px', border: `1px solid ${c.accent}`,
         borderRadius: 8, background: c.accentBg, color: c.accent, cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
       }}>
-        📷 Capturar foto / Render
+        <ImageIcon size={16} /> Capturar foto / Render
       </button>
       <button onClick={() => store.requestRenderGeneration()} style={{
         width: '100%', marginTop: 8, padding: '10px', border: `1px solid ${c.accent}88`,
         borderRadius: 8, background: c.accentBg, color: c.accent, cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
       }}>
-        🎨 Generar render con IA (DALL·E / SORA)
+        <Wand2 size={16} /> Generar render con IA (DALL·E / SORA)
       </button>
     </div>
   )
@@ -4301,7 +4319,7 @@ export default function Viewer3D() {
           far: 200,
         }}
         gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
-        style={{ cursor: cameraMode === 'firstPerson' ? 'crosshair' : 'auto' }}
+        style={{ cursor: cameraMode === 'firstPerson' ? 'crosshair' : 'auto', touchAction: 'none' }}
       >
         <Scene />
       </Canvas>
@@ -4314,10 +4332,13 @@ export default function Viewer3D() {
         fontFamily: '"JetBrains Mono", monospace',
         pointerEvents: 'none',
         border: theme === 'dark' ? '1px solid #2a2d42' : '1px solid #d0d4de',
+        display: 'flex', alignItems: 'center', gap: 6
       }}>
-        {cameraMode === 'orbit'
-          ? '🖱️ Orbital — Arrastrar para rotar'
-          : '🚶 Caminar — Clic izq + arrastrar: mover · Clic der + arrastrar: mirar · Joystick: mover · Pad: mirar'}
+        {cameraMode === 'orbit' ? (
+          <><Move size={16} /> Orbital — Arrastrar para rotar</>
+        ) : (
+          <><Eye size={16} /> Caminar — Clic izq + arrastrar: mover · Clic der + arrastrar: mirar · Joystick: mover · Pad: mirar</>
+        )}
       </div>
       <Viewer3DFloatingMenu />
       {cameraMode === 'firstPerson' && (
