@@ -14,10 +14,21 @@
   "build": {
     "appId": "com.floorcraft.app",
     "productName": "FloorCraft",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "electron/**/*", "package.json"],
-    "asarUnpack": ["dist/**"],
-    "win": { "target": "dir", "signAndEditExecutable": false }
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "dist/**"
+    ],
+    "win": {
+      "target": "dir",
+      "signAndEditExecutable": false
+    }
   },
   "dependencies": {
     "@react-three/drei": "^9.97.0",
@@ -26,6 +37,7 @@
     "dxf-parser": "^1.1.2",
     "express": "^5.2.1",
     "jspdf": "^4.2.0",
+    "lucide-react": "^0.577.0",
     "pdfjs-dist": "^5.4.624",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
