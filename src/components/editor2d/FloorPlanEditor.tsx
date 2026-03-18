@@ -770,14 +770,65 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
       })
 
       const meters = len / SCALE
-      ctx.fillStyle = '#aab'
-      ctx.font = '11px "DM Sans", sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText(
-        `${meters.toFixed(2)}m`,
-        (s.x + e.x) / 2,
-        (s.y + e.y) / 2 - halfT - 8
-      )
+      if (meters > 0.2) { // Ocultar en paredes minúsculas
+        const cx = (s.x + e.x) / 2
+        const cy = (s.y + e.y) / 2
+        
+        ctx.save()
+        ctx.translate(cx, cy)
+        
+        // Calcular ángulo de la pared (-PI a PI)
+        let ang = Math.atan2(dy, dx)
+        // Mantener texto siempre del derecho (hacia arriba)
+        if (ang > Math.PI / 2 || ang < -Math.PI / 2) {
+          ang += Math.PI
+        }
+        ctx.rotate(ang)
+        
+        // Offset hacia "arriba" (normal a la línea del texto)
+        const offset = halfT + 12
+        
+        ctx.fillStyle = tc.canvasText
+        ctx.font = '500 11px "JetBrains Mono", monospace'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        
+        // Dibujar un pequeño "halo" blanco/oscuro detrás del texto para legibilidad sobre el grid
+        ctx.shadowColor = theme === 'dark' ? '#13141c' : '#ffffff'
+        ctx.shadowBlur = 4
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+        
+        // Línea de cota sutil
+        const lineLen = len / 2 - 20
+        if (lineLen > 10) {
+          ctx.beginPath()
+          ctx.strokeStyle = theme === 'dark' ? '#4a4f6a66' : '#8890a066'
+          ctx.lineWidth = 1
+          // Línea izq
+          ctx.moveTo(-len / 2 + 5, -offset)
+          ctx.lineTo(-20, -offset)
+          // Línea der
+          ctx.moveTo(20, -offset)
+          ctx.lineTo(len / 2 - 5, -offset)
+          // Remates (ticks)
+          ctx.moveTo(-len / 2 + 5, -offset - 3)
+          ctx.lineTo(-len / 2 + 5, -offset + 3)
+          ctx.moveTo(len / 2 - 5, -offset - 3)
+          ctx.lineTo(len / 2 - 5, -offset + 3)
+          ctx.stroke()
+        }
+        
+        // 3 pasadas para hacer "stroke" grueso simulado en HTML canvas y evitar que el grid tape
+        ctx.fillStyle = theme === 'dark' ? '#13141c' : '#ffffff'
+        ctx.fillText(`${meters.toFixed(2)}m`, 0, -offset)
+        ctx.fillText(`${meters.toFixed(2)}m`, 0, -offset)
+        ctx.fillStyle = isSelected ? '#5B8DEF' : (theme === 'dark' ? '#a0a2be' : '#555770')
+        ctx.shadowBlur = 0 // quitar sombra para el texto en sí
+        ctx.fillText(`${meters.toFixed(2)}m`, 0, -offset)
+        
+        ctx.restore()
+      }
     })
 
     // Junction patches: fill convex area at corners where walls meet
@@ -1999,16 +2050,17 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
           touchAction: 'none',
         }}
       />
-      {/* Botón rotar vista top — abajo a la izquierda */}
+      {/* Elementos UI superpuestos: Rotación, Brújula y Escala */}
       <div style={{
         position: 'absolute',
         bottom: 12,
         left: 12,
         zIndex: 20,
         display: 'flex',
-        alignItems: 'center',
-        gap: 8,
+        alignItems: 'flex-end',
+        gap: 16,
       }}>
+        {/* Botón rotar */}
         <button
           onClick={() => store.setViewRotation((editor.viewRotationDeg ?? 0) + 90)}
           title="Rotar vista top 90°"
@@ -2026,10 +2078,72 @@ export default function FloorPlanEditor({ canvasRef: externalCanvasRef }: FloorP
             justifyContent: 'center',
             fontFamily: 'inherit',
             boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.08)',
+            marginBottom: 4,
           }}
         >
           ↻
         </button>
+
+        {/* Barra de escala */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          paddingBottom: 6,
+        }}>
+          <div style={{ 
+            fontSize: 11, 
+            color: tc.canvasText, 
+            opacity: 0.8, 
+            marginBottom: 2, 
+            fontFamily: '"JetBrains Mono", monospace',
+            fontWeight: 600,
+          }}>
+            1 m
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+          }}>
+            <div style={{ width: 1, height: 6, background: tc.canvasText, opacity: 0.6 }} />
+            <div style={{ width: SCALE * editor.zoom, height: 1, background: tc.canvasText, opacity: 0.6 }} />
+            <div style={{ width: 1, height: 6, background: tc.canvasText, opacity: 0.6 }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Brújula (Norte) - Arriba a la derecha */}
+      <div style={{
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        zIndex: 20,
+        pointerEvents: 'none',
+        userSelect: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        opacity: 0.6,
+        transform: `rotate(${editor.viewRotationDeg ?? 0}deg)`,
+        transition: 'transform 0.3s ease',
+      }}>
+        <span style={{ 
+          fontSize: 12, 
+          fontWeight: 800, 
+          fontFamily: '"DM Sans", sans-serif', 
+          color: theme === 'dark' ? '#EF5B5B' : '#D03030',
+          marginBottom: -2,
+        }}>
+          N
+        </span>
+        <svg width="16" height="40" viewBox="0 0 16 40">
+          <path d="M8 0 L14 18 L8 15 Z" fill={theme === 'dark' ? '#EF5B5B' : '#D03030'} />
+          <path d="M8 0 L2 18 L8 15 Z" fill={theme === 'dark' ? '#CC4040' : '#A02020'} />
+          <path d="M8 40 L14 22 L8 25 Z" fill={theme === 'dark' ? '#8890a0' : '#8890a0'} />
+          <path d="M8 40 L2 22 L8 25 Z" fill={theme === 'dark' ? '#555770' : '#555770'} />
+        </svg>
       </div>
       {/* Length input box — appears while drawing a wall */}
       {editor.isDrawingWall && editor.wallStartPoint && previewEnd && (() => {
