@@ -3496,7 +3496,64 @@ function findClosedRooms(walls: Wall[]): { x: number; z: number }[][] {
 
   const adj = new Map<string, { x: number; z: number; neighbors: string[] }>()
 
-  for (const w of walls) {
+  // Intersección de líneas: dividir paredes que se cruzan para asegurar vértices
+  const splitWalls: { start: Point; end: Point }[] = []
+  
+  let currentWalls = [...walls]
+  let hasIntersections = true
+  
+  let loopCount = 0
+  while (hasIntersections && loopCount++ < 5) {
+    hasIntersections = false
+    const newWalls: {start: Point; end: Point}[] = []
+    
+    for (let i = 0; i < currentWalls.length; i++) {
+      const w = currentWalls[i]
+      let splitPoint: Point | null = null
+      
+      for (let j = 0; j < currentWalls.length; j++) {
+        if (i === j) continue
+        const ow = currentWalls[j]
+        
+        for (const pt of [ow.start, ow.end]) {
+          if ((Math.abs(pt.x - w.start.x) < eps && Math.abs(pt.y - w.start.y) < eps) ||
+              (Math.abs(pt.x - w.end.x) < eps && Math.abs(pt.y - w.end.y) < eps)) {
+            continue
+          }
+          
+          const l2 = (w.start.x - w.end.x)**2 + (w.start.y - w.end.y)**2
+          if (l2 === 0) continue
+          
+          let t = ((pt.x - w.start.x) * (w.end.x - w.start.x) + (pt.y - w.start.y) * (w.end.y - w.start.y)) / l2
+          if (t > 0.01 && t < 0.99) {
+            const projX = w.start.x + t * (w.end.x - w.start.x)
+            const projY = w.start.y + t * (w.end.y - w.start.y)
+            const dist = Math.sqrt((pt.x - projX)**2 + (pt.y - projY)**2)
+            
+            if (dist < eps * 3) {
+              splitPoint = { x: projX, y: projY }
+              break
+            }
+          }
+        }
+        if (splitPoint) break
+      }
+      
+      if (splitPoint) {
+        newWalls.push({ start: w.start, end: splitPoint })
+        newWalls.push({ start: splitPoint, end: w.end })
+        hasIntersections = true
+      } else {
+        newWalls.push(w)
+      }
+    }
+    
+    if (hasIntersections) {
+      currentWalls = newWalls
+    }
+  }
+
+  for (const w of currentWalls) {
     const ks = key(w.start.x, w.start.y)
     const ke = key(w.end.x, w.end.y)
     if (ks === ke) continue
@@ -3533,7 +3590,7 @@ function findClosedRooms(walls: Wall[]): { x: number; z: number }[][] {
       let currK = firstNeighborK
       let valid = true
 
-      for (let step = 0; step < 50; step++) {
+      for (let step = 0; step < 100; step++) {
         chain.push(currK)
         usedEdges.add(edgeKey(prevK, currK))
 
@@ -3566,6 +3623,35 @@ function findClosedRooms(walls: Wall[]): { x: number; z: number }[][] {
 
       const poly = chain.slice(0, -1).map(k => adj.get(k)!)
 
+      // Chequear auto-intersecciones
+      let isSelfIntersecting = false
+      for (let i = 0; i < poly.length; i++) {
+        const p1 = poly[i]
+        const p2 = poly[(i + 1) % poly.length]
+        for (let j = i + 2; j < poly.length; j++) {
+          if (i === 0 && j === poly.length - 1) continue
+          const p3 = poly[j]
+          const p4 = poly[(j + 1) % poly.length]
+          
+          if (Math.max(p1.x, p2.x) < Math.min(p3.x, p4.x) || Math.min(p1.x, p2.x) > Math.max(p3.x, p4.x) ||
+              Math.max(p1.z, p2.z) < Math.min(p3.z, p4.z) || Math.min(p1.z, p2.z) > Math.max(p3.z, p4.z)) {
+            continue
+          }
+          
+          const denom = (p4.z - p3.z) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.z - p1.z)
+          if (Math.abs(denom) < 0.001) continue
+          const ua = ((p4.x - p3.x) * (p1.z - p3.z) - (p4.z - p3.z) * (p1.x - p3.x)) / denom
+          const ub = ((p2.x - p1.x) * (p1.z - p3.z) - (p2.z - p1.z) * (p1.x - p3.x)) / denom
+          if (ua > 0.01 && ua < 0.99 && ub > 0.01 && ub < 0.99) {
+            isSelfIntersecting = true
+            break
+          }
+        }
+        if (isSelfIntersecting) break
+      }
+      
+      if (isSelfIntersecting) continue
+
       // Signed area to check winding
       let area = 0
       for (let i = 0; i < poly.length; i++) {
@@ -3575,7 +3661,7 @@ function findClosedRooms(walls: Wall[]): { x: number; z: number }[][] {
 
       // Only keep counter-clockwise (positive area = interior rooms, skip huge exterior)
       if (area <= 0.05) continue
-      if (Math.abs(area / 2) > 200) continue
+      if (Math.abs(area / 2) > 5000) continue
 
       rooms.push(poly.map(p => ({ x: p.x, z: p.z })))
     }
