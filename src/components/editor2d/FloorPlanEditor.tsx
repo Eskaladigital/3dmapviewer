@@ -426,15 +426,15 @@ function getWallNormalToward(wall: Wall, point: Point): Point {
   return dot > 0 ? { x: nx, y: ny } : { x: -nx, y: -ny }
 }
 
-/** Snap mueble a pared: usa el lado desde donde se acerca (target) para pegar a esa cara y girar bien */
+/** Snap mueble a pared: ajusta solo la posición (usando el bounding box rotado) sin forzar una rotación */
 function snapFurnitureToWall(
   item: { x: number; y: number; rotation: number; width: number; depth: number; type?: string },
   newX: number,
   newY: number,
   walls: Wall[]
 ): { x: number; y: number; rotation: number } {
-  const snapThreshold = item.depth * 0.6 + 0.15
-  let best: { x: number; y: number; rotation: number; dist: number } | null = null
+  const snapThreshold = Math.max(item.width, item.depth) * 0.6 + 0.15
+  let best: { x: number; y: number; dist: number } | null = null
 
   for (const wall of walls) {
     const ws = wall.start
@@ -451,21 +451,38 @@ function snapFurnitureToWall(
     if (dist > snapThreshold) continue
 
     const toward = getWallNormalToward(wall, { x: newX, y: newY })
-    let rotDeg = (Math.atan2(toward.x, toward.y) * 180) / Math.PI
-    const isHorizontalWall = Math.abs(wdx) > Math.abs(wdy)
-    const isSofaLike = ['sofa_2', 'sofa_3', 'sofa_L', 'armchair', 'recliner'].includes(item.type ?? '')
-    // Sofás: el modelo 3D tiene el respaldo en -Z; en pared horizontal hay que girar 180°
-    if (isHorizontalWall && isSofaLike) rotDeg += 180
-    // Paredes verticales (izq/der): el mueble sale al revés sin este ajuste
-    if (!isHorizontalWall) rotDeg += 180
-    const snapRot = ((Math.round(rotDeg / 15) * 15) % 360 + 360) % 360
-    const snapX = projX + toward.x * (item.depth / 2 + wall.thickness / 2)
-    const snapY = projY + toward.y * (item.depth / 2 + wall.thickness / 2)
+    
+    // Calculamos qué parte del bounding box rotado está más cerca de la pared
+    const rad = (item.rotation * Math.PI) / 180
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    
+    // 4 esquinas desde el centro
+    const corners = [
+      { x: item.width / 2, y: item.depth / 2 },
+      { x: -item.width / 2, y: item.depth / 2 },
+      { x: item.width / 2, y: -item.depth / 2 },
+      { x: -item.width / 2, y: -item.depth / 2 }
+    ]
+    
+    let maxExt = 0
+    for (const c of corners) {
+      // rotar esquina
+      const rx = c.x * cos - c.y * sin
+      const ry = c.x * sin + c.y * cos
+      // proyectar sobre el vector HACIA la pared (-toward)
+      const ext = rx * (-toward.x) + ry * (-toward.y)
+      if (ext > maxExt) maxExt = ext
+    }
 
-    if (!best || dist < best.dist) best = { x: snapX, y: snapY, rotation: snapRot, dist }
+    // Centrar el mueble a la distancia exacta para que el borde toque la pared
+    const snapX = projX + toward.x * (maxExt + wall.thickness / 2)
+    const snapY = projY + toward.y * (maxExt + wall.thickness / 2)
+
+    if (!best || dist < best.dist) best = { x: snapX, y: snapY, dist }
   }
 
-  if (best) return { x: best.x, y: best.y, rotation: best.rotation }
+  if (best) return { x: best.x, y: best.y, rotation: item.rotation }
   return { x: newX, y: newY, rotation: item.rotation }
 }
 

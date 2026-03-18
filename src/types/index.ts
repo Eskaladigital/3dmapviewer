@@ -364,6 +364,17 @@ export const FURNITURE_CATALOG: FurnitureCatalogItem[] = [
   { type: 'weight_bench', category: 'gym', label: 'Banco de pesas', icon: '🏋️', width: 1.2, depth: 1.4, height: 1.2, defaultColor: '#111111', defaultMaterial: 'metal' },
   { type: 'dumbbell_rack', category: 'gym', label: 'Mancuernero', icon: '🏋️', width: 1.5, depth: 0.5, height: 0.8, defaultColor: '#2a2a2a', defaultMaterial: 'metal' },
   { type: 'pilates_reformer', category: 'gym', label: 'Pilates Reformer', icon: '🧘', width: 0.7, depth: 2.4, height: 0.4, defaultColor: '#E8DCC8', defaultMaterial: 'wood' },
+  { type: 'yoga_mat', category: 'gym', label: 'Esterilla Yoga', icon: '🧘', width: 0.6, depth: 1.8, height: 0.02, defaultColor: '#5B8DEF', defaultMaterial: 'fabric' },
+  { type: 'punching_bag', category: 'gym', label: 'Saco de boxeo', icon: '🥊', width: 0.5, depth: 0.5, height: 1.8, defaultColor: '#D03030', defaultMaterial: 'fabric' },
+  { type: 'squat_rack', category: 'gym', label: 'Jaula sentadillas', icon: '🏋️', width: 1.5, depth: 1.2, height: 2.2, defaultColor: '#1A1A1A', defaultMaterial: 'metal' },
+  { type: 'rowing_machine', category: 'gym', label: 'Máquina de remo', icon: '🚣', width: 0.6, depth: 2.2, height: 0.8, defaultColor: '#2F2F2F', defaultMaterial: 'metal' },
+
+  // ─── Ocio y Bares (Nuevo) ───
+  { type: 'bar_counter', category: 'entertainment', label: 'Barra de bar', icon: '🍸', width: 2.5, depth: 0.8, height: 1.15, defaultColor: '#3A2E24', defaultMaterial: 'wood' },
+  { type: 'bar_table_high', category: 'entertainment', label: 'Mesa alta bar', icon: '🍸', width: 0.7, depth: 0.7, height: 1.1, defaultColor: '#2F2F2F', defaultMaterial: 'metal' },
+  { type: 'beer_tap', category: 'entertainment', label: 'Grifo de cerveza', icon: '🍺', width: 0.3, depth: 0.3, height: 0.5, defaultColor: '#C0C0C0', defaultMaterial: 'metal' },
+  { type: 'pool_table', category: 'entertainment', label: 'Mesa de billar', icon: '🎱', width: 2.5, depth: 1.4, height: 0.85, defaultColor: '#1B5E20', defaultMaterial: 'fabric' },
+  { type: 'arcade_machine', category: 'entertainment', label: 'Máquina Arcade', icon: '🕹️', width: 0.7, depth: 0.8, height: 1.8, defaultColor: '#111111', defaultMaterial: 'metal' },
 
   // ─── Comercio (Retail) ───
   { type: 'display_shelf', category: 'retail', label: 'Estantería comercial', icon: '🛒', width: 1.2, depth: 0.5, height: 2.0, defaultColor: '#F5F5F5', defaultMaterial: 'metal' },
