@@ -3474,6 +3474,596 @@ export const FurnitureMesh = memo(function FurnitureMesh({ item, onSelect, ceili
           </group>
         )
 
+      /* ═══════════════════════════════════════════════
+         ═══  RESTAURANTE / HOSTELERÍA  ═══
+         ═══════════════════════════════════════════════ */
+
+      case 'restaurant_table_round_2':
+      case 'restaurant_table_round_4':
+        return (
+          <group>
+            <mesh castShadow position={[0, 0.03, 0]}>
+              <cylinderGeometry args={[0.15, 0.2, 0.06, 16]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.45, 0]}>
+              <cylinderGeometry args={[0.04, 0.04, h * 0.85, 8]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h - 0.02, 0]}>
+              <cylinderGeometry args={[w / 2, w / 2, 0.04, 32]} />
+              {mat}
+            </mesh>
+          </group>
+        )
+
+      case 'restaurant_table_rect_4':
+      case 'restaurant_table_rect_6':
+      case 'restaurant_table_rect_8':
+        return (
+          <group>
+            {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([lx, lz], i) => (
+              <mesh key={i} castShadow position={[lx * (w / 2 - 0.08), h * 0.38, lz * (d / 2 - 0.08)]}>
+                <boxGeometry args={[0.05, h * 0.76, 0.05]} />
+                {matDark}
+              </mesh>
+            ))}
+            <mesh castShadow position={[0, h - 0.025, 0]}>
+              <boxGeometry args={[w, 0.05, d]} />
+              {mat}
+            </mesh>
+          </group>
+        )
+
+      case 'restaurant_booth':
+        return (
+          <group>
+            <mesh castShadow position={[0, 0.22, 0]}>
+              <boxGeometry args={[w, 0.44, d]} />
+              {cushionMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.55, -d / 2 + 0.05]}>
+              <boxGeometry args={[w, h * 0.65, 0.10]} />
+              {cushionMat}
+            </mesh>
+            <mesh castShadow position={[0, 0.22, -d / 2 + 0.02]}>
+              <boxGeometry args={[w + 0.04, 0.48, d + 0.04]} />
+              {matDark}
+            </mesh>
+          </group>
+        )
+
+      case 'restaurant_booth_corner':
+        return (
+          <group>
+            <mesh castShadow position={[0, 0.22, 0]}>
+              <boxGeometry args={[w, 0.44, d]} />
+              {cushionMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.55, -d / 2 + 0.05]}>
+              <boxGeometry args={[w, h * 0.65, 0.10]} />
+              {cushionMat}
+            </mesh>
+            <mesh castShadow position={[-w / 2 + 0.05, h * 0.55, 0]}>
+              <boxGeometry args={[0.10, h * 0.65, d]} />
+              {cushionMat}
+            </mesh>
+            <mesh castShadow position={[0, 0.01, 0]}>
+              <boxGeometry args={[w + 0.04, 0.02, d + 0.04]} />
+              {matDark}
+            </mesh>
+          </group>
+        )
+
+      case 'restaurant_chair':
+        return (
+          <group>
+            {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([lx, lz], i) => (
+              <mesh key={i} castShadow position={[lx * (w / 2 - 0.04), 0.22, lz * (d / 2 - 0.04)]}>
+                <boxGeometry args={[0.035, 0.44, 0.035]} />
+                {matDark}
+              </mesh>
+            ))}
+            <mesh castShadow position={[0, 0.44, 0]}>
+              <boxGeometry args={[w - 0.04, 0.04, d - 0.04]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.65, -d / 2 + 0.03]}>
+              <boxGeometry args={[w - 0.06, h * 0.42, 0.025]} />
+              {mat}
+            </mesh>
+          </group>
+        )
+
+      case 'restaurant_chair_upholstered':
+        return (
+          <group>
+            {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([lx, lz], i) => (
+              <mesh key={i} castShadow position={[lx * (w / 2 - 0.04), 0.22, lz * (d / 2 - 0.04)]}>
+                <boxGeometry args={[0.035, 0.44, 0.035]} />
+                {woodDark}
+              </mesh>
+            ))}
+            <mesh castShadow position={[0, 0.46, 0]}>
+              <boxGeometry args={[w - 0.04, 0.06, d - 0.04]} />
+              {cushionMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.65, -d / 2 + 0.04]}>
+              <boxGeometry args={[w - 0.06, h * 0.42, 0.06]} />
+              {cushionMat}
+            </mesh>
+          </group>
+        )
+
+      case 'restaurant_bar_long':
+        return (
+          <group>
+            <mesh castShadow position={[0, h * 0.45, 0]}>
+              <boxGeometry args={[w, h * 0.9, d * 0.8]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[0, h, 0]}>
+              <boxGeometry args={[w + 0.06, 0.06, d + 0.1]} />
+              {matDark}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.55, d * 0.35]}>
+              <boxGeometry args={[w - 0.1, 0.03, 0.20]} />
+              <meshStandardMaterial color="#B8860B" metalness={0.6} roughness={0.2} />
+            </mesh>
+          </group>
+        )
+
+      case 'restaurant_bar_L':
+        return (
+          <group>
+            <mesh castShadow position={[0, h * 0.45, -d * 0.25]}>
+              <boxGeometry args={[w, h * 0.9, d * 0.5]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[-w * 0.35, h * 0.45, d * 0.1]}>
+              <boxGeometry args={[w * 0.3, h * 0.9, d * 0.7]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[-w * 0.1, h, -d * 0.05]}>
+              <boxGeometry args={[w * 0.85, 0.06, d + 0.08]} />
+              {matDark}
+            </mesh>
+          </group>
+        )
+
+      case 'wine_rack':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {mat}
+            </mesh>
+            {Array.from({ length: 5 }).map((_, row) =>
+              Array.from({ length: 3 }).map((_, col) => (
+                <mesh key={`${row}-${col}`} castShadow position={[
+                  -w * 0.3 + col * w * 0.3,
+                  0.18 + row * (h / 5.5),
+                  d * 0.15
+                ]} rotation={[Math.PI / 2, 0, 0]}>
+                  <cylinderGeometry args={[0.04, 0.04, d * 0.5, 8]} />
+                  <meshStandardMaterial color="#4a1a1a" roughness={0.6} />
+                </mesh>
+              ))
+            )}
+          </group>
+        )
+
+      case 'wine_cooler':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              <meshStandardMaterial color={color} roughness={0.2} metalness={0.8} />
+            </mesh>
+            <mesh castShadow position={[0, h / 2, d / 2 + 0.005]}>
+              <boxGeometry args={[w * 0.85, h * 0.85, 0.02]} />
+              <meshPhysicalMaterial color="#1a2a3a" transparent opacity={0.5} roughness={0.05} transmission={0.4} />
+            </mesh>
+            <mesh castShadow position={[w * 0.38, h / 2, d / 2 + 0.01]}>
+              <boxGeometry args={[0.03, 0.10, 0.04]} />
+              {chromeMat}
+            </mesh>
+          </group>
+        )
+
+      case 'buffet_table':
+      case 'salad_bar':
+        return (
+          <group>
+            {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([lx, lz], i) => (
+              <mesh key={i} castShadow position={[lx * (w / 2 - 0.06), h * 0.37, lz * (d / 2 - 0.06)]}>
+                <boxGeometry args={[0.06, h * 0.74, 0.06]} />
+                {chromeMat}
+              </mesh>
+            ))}
+            <mesh castShadow position={[0, h - 0.03, 0]}>
+              <boxGeometry args={[w, 0.06, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh receiveShadow position={[0, h + 0.02, 0]}>
+              <boxGeometry args={[w - 0.08, 0.04, d - 0.08]} />
+              {ceramicWhite}
+            </mesh>
+            <mesh position={[0, h + 0.07, 0]}>
+              <boxGeometry args={[w - 0.12, 0.06, d - 0.12]} />
+              <meshPhysicalMaterial color="#e8f4f8" transparent opacity={0.25} roughness={0.05} transmission={0.5} />
+            </mesh>
+          </group>
+        )
+
+      case 'service_station':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[0, h + 0.015, 0]}>
+              <boxGeometry args={[w + 0.02, 0.03, d + 0.02]} />
+              {matDark}
+            </mesh>
+            {[-0.15, 0.15].map((z, i) => (
+              <mesh key={i} castShadow position={[0, h * 0.35, z]}>
+                <boxGeometry args={[w * 0.9, 0.02, d * 0.35]} />
+                {matDark}
+              </mesh>
+            ))}
+          </group>
+        )
+
+      case 'host_stand':
+        return (
+          <group>
+            <mesh castShadow position={[0, h * 0.35, 0]}>
+              <boxGeometry args={[w * 0.6, h * 0.7, d * 0.6]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.75, 0]} rotation={[-0.25, 0, 0]}>
+              <boxGeometry args={[w, 0.04, d * 0.8]} />
+              {matDark}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.93, -d * 0.25]}>
+              <boxGeometry args={[w * 0.04, h * 0.3, 0.04]} />
+              {matDark}
+            </mesh>
+          </group>
+        )
+
+      case 'food_display_case':
+        return (
+          <group>
+            <mesh castShadow position={[0, 0.3, 0]}>
+              <boxGeometry args={[w, 0.6, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.55, 0]}>
+              <boxGeometry args={[w, h * 0.5, d]} />
+              <meshPhysicalMaterial color="#e8f4f8" transparent opacity={0.2} roughness={0.02} transmission={0.7} />
+            </mesh>
+            <mesh castShadow position={[0, h * 0.55, 0]}>
+              <boxGeometry args={[w - 0.04, 0.02, d - 0.04]} />
+              <meshStandardMaterial color="#F5F5F5" roughness={0.3} />
+            </mesh>
+            <mesh castShadow position={[0, h, 0]}>
+              <boxGeometry args={[w + 0.02, 0.04, d + 0.02]} />
+              {chromeMat}
+            </mesh>
+            <mesh position={[0, 0.62, 0]}>
+              <pointLight color="#fff8e8" intensity={0.3} distance={1.5} />
+            </mesh>
+          </group>
+        )
+
+      case 'pizza_oven':
+        return (
+          <group>
+            <mesh castShadow position={[0, h * 0.25, 0]}>
+              <boxGeometry args={[w, h * 0.5, d]} />
+              <meshStandardMaterial color="#8B4513" roughness={0.85} />
+            </mesh>
+            <mesh castShadow position={[0, h * 0.65, 0]}>
+              <sphereGeometry args={[w * 0.45, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+              <meshStandardMaterial color={color} roughness={0.8} />
+            </mesh>
+            <mesh castShadow position={[0, h * 0.5, d * 0.42]}>
+              <boxGeometry args={[w * 0.45, h * 0.30, 0.06]} />
+              <meshStandardMaterial color="#2a2a2a" roughness={0.4} metalness={0.7} />
+            </mesh>
+            <mesh castShadow position={[0, h, -d * 0.2]}>
+              <cylinderGeometry args={[0.12, 0.12, h * 0.3, 12]} />
+              <meshStandardMaterial color="#666" roughness={0.5} metalness={0.3} />
+            </mesh>
+          </group>
+        )
+
+      case 'coffee_machine_pro':
+        return (
+          <group>
+            <mesh castShadow position={[0, h * 0.35, 0]}>
+              <boxGeometry args={[w, h * 0.7, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.8, -d * 0.1]}>
+              <boxGeometry args={[w * 0.9, h * 0.35, d * 0.6]} />
+              <meshStandardMaterial color="#2F2F2F" roughness={0.3} metalness={0.7} />
+            </mesh>
+            {[-0.15, 0, 0.15].map((x, i) => (
+              <mesh key={i} castShadow position={[x, h * 0.6, d * 0.35]}>
+                <cylinderGeometry args={[0.015, 0.015, 0.06, 8]} />
+                {chromeMat}
+              </mesh>
+            ))}
+            <mesh castShadow position={[w * 0.35, h * 0.65, d * 0.2]}>
+              <cylinderGeometry args={[0.02, 0.02, 0.05, 8]} />
+              <meshStandardMaterial color="#222" roughness={0.4} />
+            </mesh>
+          </group>
+        )
+
+      case 'ice_machine':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.6, d / 2 + 0.005]}>
+              <boxGeometry args={[w * 0.85, h * 0.4, 0.02]} />
+              <meshStandardMaterial color="#E8E8E8" roughness={0.3} />
+            </mesh>
+            <mesh castShadow position={[w * 0.35, h * 0.6, d / 2 + 0.015]}>
+              <boxGeometry args={[0.04, 0.08, 0.03]} />
+              {chromeMat}
+            </mesh>
+          </group>
+        )
+
+      case 'soda_fountain':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              <meshStandardMaterial color={color} roughness={0.3} metalness={0.6} />
+            </mesh>
+            {[-0.12, -0.04, 0.04, 0.12].map((x, i) => (
+              <mesh key={i} castShadow position={[x, h * 0.75, d / 2 + 0.01]}>
+                <cylinderGeometry args={[0.015, 0.015, 0.08, 8]} />
+                {chromeMat}
+              </mesh>
+            ))}
+            <mesh castShadow position={[0, 0.04, d * 0.25]}>
+              <boxGeometry args={[w * 0.6, 0.04, d * 0.3]} />
+              {chromeMat}
+            </mesh>
+          </group>
+        )
+
+      case 'cash_register_restaurant':
+        return (
+          <group>
+            <mesh castShadow position={[0, h * 0.35, 0]}>
+              <boxGeometry args={[w, h * 0.7, d]} />
+              <meshStandardMaterial color={color} roughness={0.3} metalness={0.5} />
+            </mesh>
+            <mesh castShadow position={[0, h * 0.75, d * 0.08]} rotation={[-0.5, 0, 0]}>
+              <boxGeometry args={[w * 0.8, 0.02, d * 0.5]} />
+              <meshStandardMaterial color="#111" emissive="#222244" emissiveIntensity={0.15} />
+            </mesh>
+          </group>
+        )
+
+      case 'restaurant_partition':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w - 0.1, h - 0.15, d + 0.005]} />
+              <meshPhysicalMaterial color="#e8dcc8" transparent opacity={0.35} roughness={0.1} transmission={0.3} />
+            </mesh>
+            {[[-1], [1]].map(([lx], i) => (
+              <mesh key={i} castShadow position={[lx * (w / 2 - 0.03), h * 0.3, 0]}>
+                <boxGeometry args={[0.04, h * 0.6, d + 0.06]} />
+                {matDark}
+              </mesh>
+            ))}
+          </group>
+        )
+
+      case 'outdoor_table_parasol':
+        return (
+          <group>
+            {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([lx, lz], i) => (
+              <mesh key={i} castShadow position={[lx * (w / 2 - 0.06), 0.35, lz * (d / 2 - 0.06)]}>
+                <boxGeometry args={[0.04, 0.70, 0.04]} />
+                {chromeMat}
+              </mesh>
+            ))}
+            <mesh castShadow position={[0, 0.72, 0]}>
+              <boxGeometry args={[w, 0.04, d]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[0, 1.2, 0]}>
+              <cylinderGeometry args={[0.025, 0.025, h - 0.75, 8]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h - 0.05, 0]}>
+              <coneGeometry args={[w * 0.85, 0.25, 8]} />
+              <meshStandardMaterial color={color} roughness={0.8} side={THREE.DoubleSide} />
+            </mesh>
+          </group>
+        )
+
+      case 'outdoor_chair':
+        return (
+          <group>
+            {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([lx, lz], i) => (
+              <mesh key={i} castShadow position={[lx * (w / 2 - 0.04), 0.22, lz * (d / 2 - 0.04)]}>
+                <cylinderGeometry args={[0.015, 0.015, 0.44, 8]} />
+                {chromeMat}
+              </mesh>
+            ))}
+            <mesh castShadow position={[0, 0.44, 0]}>
+              <boxGeometry args={[w - 0.04, 0.03, d - 0.04]} />
+              {mat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.65, -d / 2 + 0.02]}>
+              <boxGeometry args={[w - 0.06, h * 0.42, 0.02]} />
+              {mat}
+            </mesh>
+          </group>
+        )
+
+      case 'industrial_kitchen_table':
+        return (
+          <group>
+            {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([lx, lz], i) => (
+              <mesh key={i} castShadow position={[lx * (w / 2 - 0.05), h * 0.42, lz * (d / 2 - 0.05)]}>
+                <cylinderGeometry args={[0.025, 0.025, h * 0.85, 8]} />
+                {chromeMat}
+              </mesh>
+            ))}
+            <mesh castShadow position={[0, h - 0.02, 0]}>
+              <boxGeometry args={[w, 0.04, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.3, 0]}>
+              <boxGeometry args={[w - 0.1, 0.02, d - 0.1]} />
+              {chromeMat}
+            </mesh>
+          </group>
+        )
+
+      case 'commercial_fridge':
+      case 'commercial_freezer':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h / 2, d / 2 + 0.003]}>
+              <boxGeometry args={[w - 0.02, h - 0.04, 0.015]} />
+              <meshStandardMaterial color="#D8D8D8" roughness={0.2} metalness={0.7} />
+            </mesh>
+            <mesh castShadow position={[w * 0.35, h * 0.55, d / 2 + 0.015]}>
+              <boxGeometry args={[0.04, 0.20, 0.03]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[w * 0.35, h * 0.25, d / 2 + 0.015]}>
+              <boxGeometry args={[0.04, 0.20, 0.03]} />
+              {chromeMat}
+            </mesh>
+          </group>
+        )
+
+      case 'commercial_range':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {chromeMat}
+            </mesh>
+            {[-0.3, -0.1, 0.1, 0.3].map((x, i) => (
+              <group key={i}>
+                <mesh castShadow position={[x, h + 0.015, 0]}>
+                  <cylinderGeometry args={[0.08, 0.08, 0.02, 16]} />
+                  <meshStandardMaterial color="#333" roughness={0.3} metalness={0.7} />
+                </mesh>
+                <mesh castShadow position={[x, h + 0.03, 0]}>
+                  <torusGeometry args={[0.06, 0.008, 8, 16]} />
+                  <meshStandardMaterial color="#444" roughness={0.3} metalness={0.8} />
+                </mesh>
+              </group>
+            ))}
+            <mesh castShadow position={[0, h * 0.35, d / 2 + 0.005]}>
+              <boxGeometry args={[w * 0.5, h * 0.45, 0.02]} />
+              <meshStandardMaterial color="#222" roughness={0.3} metalness={0.5} />
+            </mesh>
+          </group>
+        )
+
+      case 'deep_fryer':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh position={[0, h - 0.05, 0]}>
+              <boxGeometry args={[w - 0.08, 0.10, d - 0.08]} />
+              <meshStandardMaterial color="#D4A017" roughness={0.3} metalness={0.2} />
+            </mesh>
+            {[-0.1, 0.1].map((x, i) => (
+              <mesh key={i} castShadow position={[x, h + 0.04, -d * 0.3]}>
+                <boxGeometry args={[w * 0.3, 0.08, 0.04]} />
+                {chromeMat}
+              </mesh>
+            ))}
+          </group>
+        )
+
+      case 'commercial_dishwasher':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.55, d / 2 + 0.005]}>
+              <boxGeometry args={[w * 0.85, h * 0.35, 0.02]} />
+              <meshStandardMaterial color="#999" roughness={0.3} metalness={0.5} />
+            </mesh>
+            <mesh castShadow position={[w * 0.3, h * 0.55, d / 2 + 0.015]}>
+              <boxGeometry args={[0.04, 0.10, 0.03]} />
+              {chromeMat}
+            </mesh>
+          </group>
+        )
+
+      case 'commercial_hood':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h * 0.4, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.15, 0]}>
+              <boxGeometry args={[w + 0.1, h * 0.15, d + 0.05]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h * 0.7, -d * 0.3]}>
+              <boxGeometry args={[w * 0.3, h * 0.6, 0.15]} />
+              {chromeMat}
+            </mesh>
+          </group>
+        )
+
+      case 'plancha_grill':
+        return (
+          <group>
+            <mesh castShadow position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              {chromeMat}
+            </mesh>
+            <mesh castShadow position={[0, h + 0.01, 0]}>
+              <boxGeometry args={[w - 0.04, 0.03, d - 0.04]} />
+              <meshStandardMaterial color="#333" roughness={0.25} metalness={0.85} />
+            </mesh>
+            <mesh castShadow position={[0, h + 0.04, d / 2 + 0.02]}>
+              <boxGeometry args={[w - 0.08, 0.08, 0.03]} />
+              {chromeMat}
+            </mesh>
+          </group>
+        )
+
       default:
         return (
           <mesh castShadow receiveShadow position={[0, h / 2, 0]}>
