@@ -6,6 +6,7 @@ import type {
   DoorSubtype, WindowSubtype, OpeningCatalogItem,
   SceneMaterials, MaterialSlot, FurnitureCatalogItem,
   FloorPlanBackground, FloorPlanCalibration, FloorPlanAIAnalysis,
+  CameraPathWaypoint,
 } from '@/types'
 import { DEFAULT_SCENE_MATERIALS, FURNITURE_CATALOG, OPENING_CATALOG } from '@/types'
 import { FLOOR_TEMPLATES } from '@/data/floorTemplates'
@@ -209,6 +210,32 @@ interface AppStore {
   validationIssues: ValidationIssue[]
   runValidation: () => void
 
+  // Camera path (ruta de cámara para video)
+  addCameraWaypoint: (wp: CameraPathWaypoint) => void
+  removeCameraWaypoint: (id: string) => void
+  reorderWaypoints: (fromIndex: number, toIndex: number) => void
+  importSavedCamerasAsWaypoints: () => void
+  clearAllWaypoints: () => void
+  setPathDuration: (v: number) => void
+  setPathFps: (v: number) => void
+  setShowPathLine: (v: boolean) => void
+  toggleClickToAddWaypoint: () => void
+  requestAddWaypoint: () => void
+  startPathPreview: () => void
+  stopPathPreview: () => void
+  startWebGLRecording: () => void
+  stopWebGLRecording: () => void
+  setRecordingProgress: (v: number) => void
+  startSoraGeneration: () => void
+  stopSoraGeneration: () => void
+  setSoraProgress: (v: number) => void
+
+  // Video Sora modal
+  soraVideoModalOpen: boolean
+  setSoraVideoModalOpen: (v: boolean) => void
+  soraKeyframes: string[]
+  setSoraKeyframes: (frames: string[]) => void
+
   // Vista 3D: cámaras guardadas
   savedCameraPositions: Array<{ position: [number, number, number]; target: [number, number, number]; zoom: number }>
 }
@@ -328,6 +355,19 @@ export const useStore = create<AppStore>((set, get) => ({
         isCapturing: false,
         saveCameraRequest: 0,
         restoreCameraIndex: null,
+        cameraPath: {
+          waypoints: [],
+          showPathLine: true,
+          isPreviewing: false,
+          isRecordingWebGL: false,
+          isGeneratingSora: false,
+          recordingProgress: 0,
+          soraProgress: 0,
+          pathDuration: 10,
+          pathFps: 30,
+          clickToAddWaypoint: false,
+          addWaypointRequest: 0,
+        },
       },
     }
   }),
@@ -1249,6 +1289,74 @@ export const useStore = create<AppStore>((set, get) => ({
   runValidation: () => set((state) => ({
     validationIssues: validateFloor(get().getActiveFloor()),
   })),
+
+  // Camera path actions
+  addCameraWaypoint: (wp) => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, waypoints: [...state.editor.cameraPath.waypoints, wp] } },
+  })),
+  removeCameraWaypoint: (id) => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, waypoints: state.editor.cameraPath.waypoints.filter((w) => w.id !== id) } },
+  })),
+  reorderWaypoints: (fromIndex, toIndex) => set((state) => {
+    const wps = [...state.editor.cameraPath.waypoints]
+    const [item] = wps.splice(fromIndex, 1)
+    wps.splice(toIndex, 0, item)
+    return { editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, waypoints: wps } } }
+  }),
+  importSavedCamerasAsWaypoints: () => set((state) => {
+    const newWps: CameraPathWaypoint[] = state.savedCameraPositions.map((c) => ({
+      id: uuidv4(), position: c.position, target: c.target,
+    }))
+    return { editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, waypoints: [...state.editor.cameraPath.waypoints, ...newWps] } } }
+  }),
+  clearAllWaypoints: () => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, waypoints: [] } },
+  })),
+  setPathDuration: (v) => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, pathDuration: v } },
+  })),
+  setPathFps: (v) => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, pathFps: v } },
+  })),
+  setShowPathLine: (v) => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, showPathLine: v } },
+  })),
+  toggleClickToAddWaypoint: () => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, clickToAddWaypoint: !state.editor.cameraPath.clickToAddWaypoint } },
+  })),
+  requestAddWaypoint: () => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, addWaypointRequest: Date.now() } },
+  })),
+  startPathPreview: () => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, isPreviewing: true } },
+  })),
+  stopPathPreview: () => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, isPreviewing: false } },
+  })),
+  startWebGLRecording: () => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, isRecordingWebGL: true, recordingProgress: 0 } },
+  })),
+  stopWebGLRecording: () => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, isRecordingWebGL: false, recordingProgress: 0 } },
+  })),
+  setRecordingProgress: (v) => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, recordingProgress: v } },
+  })),
+  startSoraGeneration: () => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, isGeneratingSora: true, soraProgress: 0 } },
+  })),
+  stopSoraGeneration: () => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, isGeneratingSora: false, soraProgress: 0 } },
+  })),
+  setSoraProgress: (v) => set((state) => ({
+    editor: { ...state.editor, cameraPath: { ...state.editor.cameraPath, soraProgress: v } },
+  })),
+
+  // Video Sora modal
+  soraVideoModalOpen: false,
+  setSoraVideoModalOpen: (v) => set({ soraVideoModalOpen: v }),
+  soraKeyframes: [] as string[],
+  setSoraKeyframes: (frames) => set({ soraKeyframes: frames }),
 
   // Vista 3D: cámaras guardadas
   savedCameraPositions: [] as Array<{ position: [number, number, number]; target: [number, number, number]; zoom: number }>,

@@ -155,6 +155,29 @@ export interface EditorState {
   isCapturing: boolean
   saveCameraRequest: number
   restoreCameraIndex: number | null
+  // Camera path
+  cameraPath: CameraPathState
+}
+
+export interface CameraPathWaypoint {
+  id: string
+  position: [number, number, number]
+  target: [number, number, number]
+  fov?: number
+}
+
+export interface CameraPathState {
+  waypoints: CameraPathWaypoint[]
+  showPathLine: boolean
+  isPreviewing: boolean
+  isRecordingWebGL: boolean
+  isGeneratingSora: boolean
+  recordingProgress: number
+  soraProgress: number
+  pathDuration: number
+  pathFps: number
+  clickToAddWaypoint: boolean
+  addWaypointRequest: number
 }
 
 /** Plano de fondo importado (imagen, PDF, DXF) para calcar en el editor 2D */

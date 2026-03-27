@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useCallback, useEffect, memo } from 'react'
-import { Camera, Sunrise, Sun, SunDim, Sunset, Moon, MoonStar, Eye, Move, Grid3x3, CheckSquare, Maximize, ArrowUp, ArrowRight, ArrowDown, MapPin, Save, Image as ImageIcon, Wand2 } from 'lucide-react'
+import { Camera, Sunrise, Sun, SunDim, Sunset, Moon, MoonStar, Eye, Move, Grid3x3, CheckSquare, Maximize, ArrowUp, ArrowRight, ArrowDown, MapPin, Save, Image as ImageIcon, Wand2, Film, Plus, Trash2, ChevronUp, ChevronDown, Play, Square, Download, Video, Crosshair } from 'lucide-react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import {
   OrbitControls,
@@ -12,7 +12,8 @@ import { EffectComposer, SSAO, Bloom, DepthOfField, BrightnessContrast, HueSatur
 import * as THREE from 'three'
 import { useStore } from '@/store/useStore'
 import { THEMES } from '@/types'
-import type { Wall, FurnitureItem, WallOpening, SceneMaterials, DoorSubtype } from '@/types'
+import type { Wall, FurnitureItem, WallOpening, SceneMaterials, DoorSubtype, CameraPathWaypoint } from '@/types'
+import { v4 as uuidv4 } from 'uuid'
 
 /* ─── Texturas procedurales por material (vetas, puntos, patrones) ─── */
 const TEX_SIZE = 256
@@ -5270,6 +5271,230 @@ function CameraFovUpdater() {
   return null
 }
 
+/* ─── Encoder WebGL → MP4 via ffmpeg.wasm ─── */
+async function encodeVideoWebGL(frames: Blob[], fps: number, onProgress?: (p: number) => void): Promise<Blob> {
+  const { FFmpeg } = await import('@ffmpeg/ffmpeg')
+  const { fetchFile } = await import('@ffmpeg/util')
+  const ffmpeg = new FFmpeg()
+  await ffmpeg.load()
+  for (let i = 0; i < frames.length; i++) {
+    const name = `frame_${String(i).padStart(5, '0')}.jpg`
+    const data = await fetchFile(frames[i])
+    await ffmpeg.writeFile(name, data)
+    onProgress?.(Math.round((i / frames.length) * 50))
+  }
+  await ffmpeg.exec(['-framerate', String(fps), '-i', 'frame_%05d.jpg', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'fast', 'output.mp4'])
+  onProgress?.(95)
+  const result = await ffmpeg.readFile('output.mp4') as unknown as ArrayBuffer
+  const blob = new Blob([result], { type: 'video/mp4' })
+  onProgress?.(100)
+  return blob
+}
+
+/* ─── Visualización de la ruta de cámara (línea + esferas) ─── */
+function CameraPathVisualizer() {
+  const waypoints = useStore((s) => s.editor.cameraPath.waypoints)
+  const showPathLine = useStore((s) => s.editor.cameraPath.showPathLine)
+
+  const { lineObj, spherePositions } = useMemo(() => {
+    if (waypoints.length < 2) return { lineObj: null, spherePositions: [] }
+    const points = waypoints.map((w) => new THREE.Vector3(...w.position))
+    const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal', 0.5)
+    const curvePoints = curve.getPoints(waypoints.length * 30)
+    const geo = new THREE.BufferGeometry().setFromPoints(curvePoints)
+    const mat = new THREE.LineBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.8 })
+    const line = new THREE.Line(geo, mat)
+    return { lineObj: line, spherePositions: points }
+  }, [waypoints])
+
+  if (!showPathLine || !lineObj) return null
+
+  return (
+    <group>
+      <primitive object={lineObj} />
+      {spherePositions.map((pos, i) => (
+        <mesh key={i} position={pos}>
+          <sphereGeometry args={[0.12, 16, 16]} />
+          <meshStandardMaterial color={i === 0 ? '#00ff88' : i === spherePositions.length - 1 ? '#ff4444' : '#00d4ff'} emissive={i === 0 ? '#00ff88' : i === spherePositions.length - 1 ? '#ff4444' : '#00d4ff'} emissiveIntensity={0.5} />
+        </mesh>
+      ))}
+      {spherePositions.map((pos, i) => (
+        <Html key={`label-${i}`} position={[pos.x, pos.y + 0.25, pos.z]} center style={{ pointerEvents: 'none' }}>
+          <div style={{ background: '#181a22dd', color: '#fff', fontSize: 10, padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>{i + 1}</div>
+        </Html>
+      ))}
+    </group>
+  )
+}
+
+/* ─── Controlador de ruta de cámara (preview + grabación WebGL) ─── */
+const CAPTURE_W = 1920
+const CAPTURE_H = 1080
+
+function CameraPathController() {
+  const { camera, gl, scene, controls } = useThree()
+  const waypoints = useStore((s) => s.editor.cameraPath.waypoints)
+  const isPreviewing = useStore((s) => s.editor.cameraPath.isPreviewing)
+  const isRecording = useStore((s) => s.editor.cameraPath.isRecordingWebGL)
+  const duration = useStore((s) => s.editor.cameraPath.pathDuration)
+  const fps = useStore((s) => s.editor.cameraPath.pathFps)
+  const stopPreview = useStore((s) => s.stopPathPreview)
+  const stopRecording = useStore((s) => s.stopWebGLRecording)
+  const setProgress = useStore((s) => s.setRecordingProgress)
+
+  const startTime = useRef<number | null>(null)
+  const recordingStarted = useRef(false)
+  const cancelRef = useRef(false)
+
+  const curves = useMemo(() => {
+    if (waypoints.length < 2) return null
+    const posPts = waypoints.map((w) => new THREE.Vector3(...w.position))
+    const tgtPts = waypoints.map((w) => new THREE.Vector3(...w.target))
+    return {
+      pos: new THREE.CatmullRomCurve3(posPts, false, 'centripetal', 0.5),
+      tgt: new THREE.CatmullRomCurve3(tgtPts, false, 'centripetal', 0.5),
+    }
+  }, [waypoints])
+
+  useEffect(() => {
+    cancelRef.current = false
+    startTime.current = null
+    recordingStarted.current = false
+  }, [isPreviewing, isRecording])
+
+  useEffect(() => {
+    if (!isRecording || !curves || recordingStarted.current) return
+    recordingStarted.current = true
+
+    const ctrl = controls as THREE.OrbitControls | null
+    if (ctrl) ctrl.enabled = false
+
+    const totalFrames = Math.ceil(fps * duration)
+    const origW = gl.domElement.width
+    const origH = gl.domElement.height
+    const origPR = gl.getPixelRatio()
+    const cam = camera as THREE.PerspectiveCamera
+    const origAspect = cam.aspect
+
+    async function captureFrames() {
+      const frames: Blob[] = []
+      gl.setPixelRatio(1)
+      gl.setSize(CAPTURE_W, CAPTURE_H, false)
+      cam.aspect = CAPTURE_W / CAPTURE_H
+      cam.updateProjectionMatrix()
+
+      for (let i = 0; i <= totalFrames; i++) {
+        if (cancelRef.current) break
+        const t = Math.min(i / totalFrames, 1)
+        const pos = curves!.pos.getPointAt(t)
+        const tgt = curves!.tgt.getPointAt(t)
+        camera.position.copy(pos)
+        camera.lookAt(tgt)
+        gl.render(scene, camera)
+
+        const blob = await new Promise<Blob>((resolve) => {
+          gl.domElement.toBlob((b) => resolve(b!), 'image/jpeg', 0.92)
+        })
+        frames.push(blob)
+        setProgress(Math.round((i / totalFrames) * 50))
+      }
+
+      cam.aspect = origAspect
+      cam.updateProjectionMatrix()
+      gl.setPixelRatio(origPR)
+      gl.setSize(origW / origPR, origH / origPR, false)
+      if (ctrl) ctrl.enabled = true
+
+      if (cancelRef.current || frames.length === 0) {
+        stopRecording()
+        return
+      }
+
+      try {
+        const mp4 = await encodeVideoWebGL(frames, fps, (p) => setProgress(50 + Math.round(p * 0.5)))
+        const url = URL.createObjectURL(mp4)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `floorcraft-video-${Date.now()}.mp4`
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (e) {
+        console.error('Error encoding video:', e)
+      }
+      stopRecording()
+    }
+
+    captureFrames()
+  }, [isRecording, curves, fps, duration, camera, gl, scene, controls, stopRecording, setProgress])
+
+  useFrame(() => {
+    if (!isPreviewing || !curves) return
+    const ctrl = controls as THREE.OrbitControls | null
+    if (ctrl) ctrl.enabled = false
+    if (startTime.current === null) startTime.current = performance.now() / 1000
+    const elapsed = performance.now() / 1000 - startTime.current
+    const t = Math.min(elapsed / duration, 1)
+    const pos = curves.pos.getPointAt(t)
+    const tgt = curves.tgt.getPointAt(t)
+    camera.position.copy(pos)
+    camera.lookAt(tgt)
+    if (t >= 1) {
+      if (ctrl) ctrl.enabled = true
+      stopPreview()
+    }
+  })
+
+  return null
+}
+
+/* ─── Click handler: añadir waypoints haciendo clic en la escena ─── */
+function CameraPathClickHandler() {
+  const { camera, raycaster, scene: threeScene } = useThree()
+  const active = useStore((s) => s.editor.cameraPath.clickToAddWaypoint)
+  const addWaypoint = useStore((s) => s.addCameraWaypoint)
+
+  const onPointerDown = useCallback((e: any) => {
+    if (!active) return
+    e.stopPropagation?.()
+    const point = e.point as THREE.Vector3 | undefined
+    if (!point) return
+    const pos: [number, number, number] = [camera.position.x, camera.position.y, camera.position.z]
+    const tgt: [number, number, number] = [point.x, point.y, point.z]
+    addWaypoint({ id: uuidv4(), position: pos, target: tgt })
+  }, [active, camera, addWaypoint])
+
+  if (!active) return null
+
+  return (
+    <mesh position={[0, 0, 0]} visible={false} onPointerDown={onPointerDown}>
+      <planeGeometry args={[200, 200]} />
+      <meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} />
+    </mesh>
+  )
+}
+
+/* ─── Captura de waypoint desde posición actual de cámara ─── */
+function CameraPathWaypointCapture() {
+  const { camera, controls } = useThree()
+  const addRequest = useStore((s) => s.editor.cameraPath.addWaypointRequest)
+  const addWaypoint = useStore((s) => s.addCameraWaypoint)
+  const prevRef = useRef(0)
+
+  useFrame(() => {
+    if (addRequest && addRequest !== prevRef.current) {
+      prevRef.current = addRequest
+      const ctrl = controls as THREE.OrbitControls | null
+      const pos: [number, number, number] = [camera.position.x, camera.position.y, camera.position.z]
+      const tgt: [number, number, number] = ctrl
+        ? [ctrl.target.x, ctrl.target.y, ctrl.target.z]
+        : [0, 1, 0]
+      addWaypoint({ id: uuidv4(), position: pos, target: tgt })
+    }
+  })
+
+  return null
+}
+
 /* ─── Scene ─── */
 function Scene() {
   const floor = useStore((s) => s.getActiveFloor())
@@ -5412,6 +5637,12 @@ function Scene() {
       ) : (
         <FirstPersonController />
       )}
+
+      {/* Camera path system */}
+      <CameraPathVisualizer />
+      <CameraPathController />
+      <CameraPathClickHandler />
+      <CameraPathWaypointCapture />
 
       <EffectComposer enableNormalPass>
         <SSAO
@@ -5833,14 +6064,410 @@ function Viewer3DFloatingMenu() {
       }}>
         <Wand2 size={16} /> Generar render con IA (DALL·E / SORA)
       </button>
+
+      {/* ─── Ruta de Cámara (Camera Path) ─── */}
+      <div style={{ borderTop: `1px solid ${c.border}`, margin: '14px 0 0', paddingTop: 14 }}>
+        <div style={{ ...label, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
+          <Film size={15} /> Ruta de Cámara
+        </div>
+
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+          <button onClick={() => store.requestAddWaypoint()} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+            <Plus size={12} /> Añadir punto
+          </button>
+          {store.savedCameraPositions.length > 0 && (
+            <button onClick={() => store.importSavedCamerasAsWaypoints()} style={{ ...btn, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+              <Download size={12} /> Importar guardadas
+            </button>
+          )}
+          <button
+            onClick={() => store.toggleClickToAddWaypoint()}
+            style={{ ...(editor.cameraPath.clickToAddWaypoint ? btnActive : btn), display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}
+          >
+            <Crosshair size={12} /> Clic en escena
+          </button>
+        </div>
+
+        {editor.cameraPath.waypoints.length > 0 && (
+          <div style={{ marginBottom: 8, maxHeight: 120, overflowY: 'auto' }}>
+            {editor.cameraPath.waypoints.map((wp, i) => (
+              <div key={wp.id} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                <span style={{
+                  width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: '#fff',
+                  background: i === 0 ? '#00cc66' : i === editor.cameraPath.waypoints.length - 1 ? '#ee4444' : '#00aadd',
+                }}>{i + 1}</span>
+                <span style={{ flex: 1, fontSize: 10, color: c.textSecondary }}>
+                  ({wp.position[0].toFixed(1)}, {wp.position[1].toFixed(1)}, {wp.position[2].toFixed(1)})
+                </span>
+                <button onClick={() => { if (i > 0) store.reorderWaypoints(i, i - 1) }} disabled={i === 0} style={{ ...btn, padding: '1px 4px', opacity: i === 0 ? 0.3 : 1 }}><ChevronUp size={10} /></button>
+                <button onClick={() => { if (i < editor.cameraPath.waypoints.length - 1) store.reorderWaypoints(i, i + 1) }} disabled={i === editor.cameraPath.waypoints.length - 1} style={{ ...btn, padding: '1px 4px', opacity: i === editor.cameraPath.waypoints.length - 1 ? 0.3 : 1 }}><ChevronDown size={10} /></button>
+                <button onClick={() => store.removeCameraWaypoint(wp.id)} style={{ ...btn, padding: '1px 4px', color: '#ee4444' }}><Trash2 size={10} /></button>
+              </div>
+            ))}
+            <button onClick={() => store.clearAllWaypoints()} style={{ ...btn, fontSize: 10, color: '#ee6666', marginTop: 4, width: '100%' }}>Borrar todos</button>
+          </div>
+        )}
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 11, color: c.textSecondary, cursor: 'pointer' }}>
+          <input type="checkbox" checked={editor.cameraPath.showPathLine} onChange={(e) => store.setShowPathLine(e.target.checked)} style={{ accentColor: c.accent }} />
+          Mostrar ruta 3D
+        </label>
+
+        <div style={row}>
+          <span style={{ ...label, fontSize: 11 }}>Duración</span>
+          <input type="range" min={3} max={60} step={1} value={editor.cameraPath.pathDuration} onChange={(e) => store.setPathDuration(Number(e.target.value))} style={{ flex: 1, accentColor: c.accent }} />
+          <span style={{ ...val, fontSize: 11 }}>{editor.cameraPath.pathDuration}s</span>
+        </div>
+        <div style={row}>
+          <span style={{ ...label, fontSize: 11 }}>FPS</span>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {[24, 30, 60].map((f) => (
+              <button key={f} onClick={() => store.setPathFps(f)} style={{ ...(editor.cameraPath.pathFps === f ? btnActive : btn), fontSize: 10, padding: '2px 6px' }}>{f}</button>
+            ))}
+          </div>
+        </div>
+
+        {editor.cameraPath.waypoints.length >= 2 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+            <button
+              onClick={() => editor.cameraPath.isPreviewing ? store.stopPathPreview() : store.startPathPreview()}
+              disabled={editor.cameraPath.isRecordingWebGL || editor.cameraPath.isGeneratingSora}
+              style={{
+                width: '100%', padding: '8px', border: `1px solid ${editor.cameraPath.isPreviewing ? '#ee4444' : c.accent}`,
+                borderRadius: 8, background: editor.cameraPath.isPreviewing ? '#ee444422' : c.accentBg,
+                color: editor.cameraPath.isPreviewing ? '#ee4444' : c.accent,
+                cursor: 'pointer', fontSize: 12, fontWeight: 500, fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                opacity: (editor.cameraPath.isRecordingWebGL || editor.cameraPath.isGeneratingSora) ? 0.4 : 1,
+              }}
+            >
+              {editor.cameraPath.isPreviewing ? <><Square size={14} /> Detener preview</> : <><Play size={14} /> Preview ruta</>}
+            </button>
+            <button
+              onClick={() => store.startWebGLRecording()}
+              disabled={editor.cameraPath.isRecordingWebGL || editor.cameraPath.isPreviewing || editor.cameraPath.isGeneratingSora}
+              style={{
+                width: '100%', padding: '8px', border: `1px solid ${c.accent}`,
+                borderRadius: 8, background: c.accentBg, color: c.accent,
+                cursor: 'pointer', fontSize: 12, fontWeight: 500, fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                opacity: (editor.cameraPath.isRecordingWebGL || editor.cameraPath.isPreviewing || editor.cameraPath.isGeneratingSora) ? 0.4 : 1,
+              }}
+            >
+              <Video size={14} /> Exportar WebGL MP4
+            </button>
+            <button
+              onClick={() => store.setSoraVideoModalOpen(true)}
+              disabled={editor.cameraPath.isRecordingWebGL || editor.cameraPath.isPreviewing || editor.cameraPath.isGeneratingSora}
+              style={{
+                width: '100%', padding: '8px', border: `1px solid ${c.accent}88`,
+                borderRadius: 8, background: c.accentBg, color: c.accent,
+                cursor: 'pointer', fontSize: 12, fontWeight: 500, fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                opacity: (editor.cameraPath.isRecordingWebGL || editor.cameraPath.isPreviewing || editor.cameraPath.isGeneratingSora) ? 0.4 : 1,
+              }}
+            >
+              <Wand2 size={14} /> Generar video IA (Sora)
+            </button>
+          </div>
+        )}
+
+        {editor.cameraPath.isRecordingWebGL && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: c.textSecondary, marginBottom: 4 }}>Grabando... {editor.cameraPath.recordingProgress}%</div>
+            <div style={{ height: 4, borderRadius: 2, background: c.border, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${editor.cameraPath.recordingProgress}%`, background: c.accent, borderRadius: 2, transition: 'width 0.3s' }} />
+            </div>
+            <button onClick={() => store.stopWebGLRecording()} style={{ ...btn, fontSize: 10, color: '#ee4444', marginTop: 4, width: '100%' }}>
+              <Square size={10} /> Cancelar
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
+}
+
+/* ─── Modal de generación de video con Sora ─── */
+const SORA_DESIGN_STYLES = [
+  'Minimalista', 'Escandinavo', 'Industrial', 'Moderno', 'Clásico', 'Lujo',
+]
+
+function SoraVideoModal() {
+  const store = useStore()
+  const theme = useStore((s) => s.theme)
+  const open = useStore((s) => s.soraVideoModalOpen)
+  const keyframes = useStore((s) => s.soraKeyframes)
+  const cameraPath = useStore((s) => s.editor.cameraPath)
+  const c = THEMES[theme]
+
+  const [soraModel, setSoraModel] = useState<'sora-2' | 'sora-2-pro'>('sora-2')
+  const [segmentDuration, setSegmentDuration] = useState<'4' | '8' | '12'>('8')
+  const [style, setStyle] = useState('Moderno')
+  const [extraPrompt, setExtraPrompt] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [progress, setProgress] = useState('')
+  const [error, setError] = useState('')
+  const [generatedVideos, setGeneratedVideos] = useState<string[]>([])
+
+  if (!open) return null
+
+  const numSegments = Math.max(1, keyframes.length - 1)
+
+  async function handleGenerate() {
+    if (keyframes.length < 2) return
+    setGenerating(true)
+    setError('')
+    setGeneratedVideos([])
+    const videos: string[] = []
+
+    try {
+      for (let seg = 0; seg < numSegments; seg++) {
+        setProgress(`Generando segmento ${seg + 1}/${numSegments}...`)
+        store.setSoraProgress(Math.round((seg / numSegments) * 100))
+
+        const movementDesc = seg === 0 ? 'comenzando el recorrido' : seg === numSegments - 1 ? 'finalizando el recorrido' : 'continuando el recorrido'
+        const prompt = `Recorrido cinematográfico por interior de vivienda. Movimiento de cámara suave y fluido, ${movementDesc}. Estilo: fotografía arquitectónica hiperrealista, revista de diseño, calidad profesional tipo 3DS Max V-Ray. Estilo de diseño: ${style}. Texturas ultra-realistas, iluminación natural.${extraPrompt ? ` ${extraPrompt}` : ''}`
+
+        const createRes = await fetch('/api/generate-video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: keyframes[seg],
+            prompt,
+            seconds: segmentDuration,
+            model: soraModel,
+          }),
+        })
+        const createData = await createRes.json()
+        if (!createRes.ok) throw new Error(createData.error || 'Error creando video')
+
+        const jobId = createData.jobId
+        setProgress(`Segmento ${seg + 1}/${numSegments}: renderizando en Sora...`)
+
+        let attempts = 0
+        while (attempts < 120) {
+          await new Promise((r) => setTimeout(r, Math.min(5000 + attempts * 500, 30000)))
+          const statusRes = await fetch(`/api/video-status/${jobId}`)
+          const statusData = await statusRes.json()
+          if (statusData.status === 'completed') break
+          if (statusData.status === 'failed') throw new Error(statusData.error?.message || 'Sora falló al generar el video')
+          store.setSoraProgress(Math.round(((seg + (statusData.progress || 0) / 100) / numSegments) * 100))
+          attempts++
+        }
+
+        const dlRes = await fetch(`/api/video-download/${jobId}`)
+        if (!dlRes.ok) throw new Error('Error descargando video')
+        const blob = await dlRes.blob()
+        const url = URL.createObjectURL(blob)
+        videos.push(url)
+        setGeneratedVideos([...videos])
+      }
+      store.setSoraProgress(100)
+      setProgress(`Completado: ${videos.length} segmento(s) generado(s)`)
+    } catch (e: any) {
+      setError(String(e.message || e))
+    } finally {
+      setGenerating(false)
+      store.stopSoraGeneration()
+    }
+  }
+
+  const overlay: React.CSSProperties = {
+    position: 'fixed', inset: 0, zIndex: 1000,
+    background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  }
+  const modal: React.CSSProperties = {
+    background: theme === 'dark' ? '#1e222e' : '#fff',
+    border: `1px solid ${c.border}`, borderRadius: 16, padding: 24,
+    width: 520, maxWidth: '90vw', maxHeight: '85vh', overflowY: 'auto',
+    boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+  }
+  const mbtn: React.CSSProperties = {
+    padding: '6px 12px', borderRadius: 6, border: `1px solid ${c.border}`,
+    background: theme === 'dark' ? '#282c3c' : '#f0f2f5', color: c.text,
+    cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
+  }
+  const mbtnActive: React.CSSProperties = { ...mbtn, background: c.accent, color: '#fff', borderColor: c.accent }
+
+  return (
+    <div style={overlay} onClick={() => { if (!generating) store.setSoraVideoModalOpen(false) }}>
+      <div style={modal} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: c.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Wand2 size={18} /> Generar Video con Sora
+          </span>
+          <button onClick={() => store.setSoraVideoModalOpen(false)} disabled={generating}
+            style={{ ...mbtn, padding: '4px 10px', fontSize: 16, opacity: generating ? 0.3 : 1 }}>×</button>
+        </div>
+
+        <div style={{ fontSize: 12, color: c.textSecondary, marginBottom: 16 }}>
+          Se generarán <strong>{numSegments}</strong> segmento(s) de video entre los <strong>{keyframes.length}</strong> keyframes capturados de la ruta.
+        </div>
+
+        {keyframes.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
+            {keyframes.map((kf, i) => (
+              <div key={i} style={{ flexShrink: 0, textAlign: 'center' }}>
+                <img src={kf} style={{ width: 100, height: 56, objectFit: 'cover', borderRadius: 6, border: `1px solid ${c.border}` }} />
+                <div style={{ fontSize: 9, color: c.textSecondary, marginTop: 2 }}>KF {i + 1}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: c.textSecondary, marginBottom: 4 }}>Modelo</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => setSoraModel('sora-2')} style={soraModel === 'sora-2' ? mbtnActive : mbtn}>Sora 2 (rápido)</button>
+            <button onClick={() => setSoraModel('sora-2-pro')} style={soraModel === 'sora-2-pro' ? mbtnActive : mbtn}>Sora 2 Pro (calidad)</button>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: c.textSecondary, marginBottom: 4 }}>Duración por segmento</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {(['4', '8', '12'] as const).map((d) => (
+              <button key={d} onClick={() => setSegmentDuration(d)} style={segmentDuration === d ? mbtnActive : mbtn}>{d}s</button>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: c.textMuted, marginTop: 2 }}>Total estimado: ~{numSegments * Number(segmentDuration)}s</div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: c.textSecondary, marginBottom: 4 }}>Estilo de diseño</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {SORA_DESIGN_STYLES.map((s) => (
+              <button key={s} onClick={() => setStyle(s)} style={style === s ? mbtnActive : mbtn}>{s}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: c.textSecondary, marginBottom: 4 }}>Indicaciones adicionales</div>
+          <textarea
+            value={extraPrompt} onChange={(e) => setExtraPrompt(e.target.value)}
+            placeholder="Ej: Con piscina exterior, jardín tropical, atardecer cálido..."
+            style={{
+              width: '100%', height: 60, padding: 8, borderRadius: 8,
+              border: `1px solid ${c.border}`, background: theme === 'dark' ? '#282c3c' : '#f5f6f8',
+              color: c.text, fontSize: 12, fontFamily: 'inherit', resize: 'vertical',
+            }}
+          />
+        </div>
+
+        {error && <div style={{ color: '#ee4444', fontSize: 12, marginBottom: 12 }}>{error}</div>}
+
+        {generating && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: c.textSecondary, marginBottom: 4 }}>{progress}</div>
+            <div style={{ height: 4, borderRadius: 2, background: c.border, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${cameraPath.soraProgress}%`, background: c.accent, borderRadius: 2, transition: 'width 0.5s' }} />
+            </div>
+          </div>
+        )}
+
+        {generatedVideos.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: c.textSecondary, marginBottom: 6 }}>Videos generados:</div>
+            {generatedVideos.map((url, i) => (
+              <div key={i} style={{ marginBottom: 8 }}>
+                <video src={url} controls style={{ width: '100%', borderRadius: 8, border: `1px solid ${c.border}` }} />
+                <a href={url} download={`floorcraft-sora-seg${i + 1}-${Date.now()}.mp4`}
+                  style={{ fontSize: 11, color: c.accent, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                  <Download size={12} /> Descargar segmento {i + 1}
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={handleGenerate}
+          disabled={generating || keyframes.length < 2}
+          style={{
+            width: '100%', padding: 12, borderRadius: 10,
+            background: generating ? c.border : c.accent, color: '#fff',
+            border: 'none', cursor: generating ? 'not-allowed' : 'pointer',
+            fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            opacity: (generating || keyframes.length < 2) ? 0.5 : 1,
+          }}
+        >
+          <Wand2 size={16} /> {generating ? 'Generando...' : `Generar ${numSegments} segmento(s) con Sora`}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Captura keyframes de la ruta para Sora (vive dentro del Canvas) ─── */
+function SoraKeyframeCapturer() {
+  const { gl, scene, camera } = useThree()
+  const waypoints = useStore((s) => s.editor.cameraPath.waypoints)
+  const soraModalOpen = useStore((s) => s.soraVideoModalOpen)
+  const setSoraKeyframes = useStore((s) => s.setSoraKeyframes)
+  const capturedForRef = useRef(false)
+
+  useEffect(() => {
+    if (!soraModalOpen || waypoints.length < 2 || capturedForRef.current) return
+    capturedForRef.current = true
+
+    const posPts = waypoints.map((w) => new THREE.Vector3(...w.position))
+    const tgtPts = waypoints.map((w) => new THREE.Vector3(...w.target))
+    const posCurve = new THREE.CatmullRomCurve3(posPts, false, 'centripetal', 0.5)
+    const tgtCurve = new THREE.CatmullRomCurve3(tgtPts, false, 'centripetal', 0.5)
+
+    const numKeyframes = Math.min(waypoints.length, 6)
+    const frames: string[] = []
+    const origW = gl.domElement.width
+    const origH = gl.domElement.height
+    const origPR = gl.getPixelRatio()
+    const cam = camera as THREE.PerspectiveCamera
+    const origAspect = cam.aspect
+    const origPos = camera.position.clone()
+    const origQuat = camera.quaternion.clone()
+
+    gl.setPixelRatio(1)
+    gl.setSize(1280, 720, false)
+    cam.aspect = 1280 / 720
+    cam.updateProjectionMatrix()
+
+    for (let i = 0; i < numKeyframes; i++) {
+      const t = numKeyframes === 1 ? 0 : i / (numKeyframes - 1)
+      const pos = posCurve.getPointAt(t)
+      const tgt = tgtCurve.getPointAt(t)
+      camera.position.copy(pos)
+      camera.lookAt(tgt)
+      gl.render(scene, camera)
+      frames.push(gl.domElement.toDataURL('image/jpeg', 0.85))
+    }
+
+    camera.position.copy(origPos)
+    camera.quaternion.copy(origQuat)
+    cam.aspect = origAspect
+    cam.updateProjectionMatrix()
+    gl.setPixelRatio(origPR)
+    gl.setSize(origW / origPR, origH / origPR, false)
+
+    setSoraKeyframes(frames)
+  }, [soraModalOpen, waypoints, gl, scene, camera, setSoraKeyframes])
+
+  useEffect(() => {
+    if (!soraModalOpen) capturedForRef.current = false
+  }, [soraModalOpen])
+
+  return null
 }
 
 export default function Viewer3D() {
   const cameraMode = useStore((s) => s.editor.cameraMode)
   const theme = useStore((s) => s.theme)
   const isCapturing = useStore((s) => s.editor.isCapturing)
+  const isRecordingWebGL = useStore((s) => s.editor.cameraPath.isRecordingWebGL)
+  const recordingProgress = useStore((s) => s.editor.cameraPath.recordingProgress)
+  const clickToAddWaypoint = useStore((s) => s.editor.cameraPath.clickToAddWaypoint)
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -5854,7 +6481,25 @@ export default function Viewer3D() {
             background: 'rgba(30,34,46,0.95)', padding: '20px 32px', borderRadius: 12,
             fontSize: 16, fontWeight: 600, color: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           }}>
-            📷 Capturando...
+            Capturando...
+          </div>
+        </div>
+      )}
+      {isRecordingWebGL && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'rgba(30,34,46,0.95)', padding: '24px 40px', borderRadius: 14,
+            fontSize: 14, fontWeight: 600, color: '#fff', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            textAlign: 'center', minWidth: 280,
+          }}>
+            <Film size={24} style={{ marginBottom: 8 }} />
+            <div style={{ marginBottom: 8 }}>Grabando video... {recordingProgress}%</div>
+            <div style={{ height: 6, borderRadius: 3, background: '#333', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${recordingProgress}%`, background: '#00d4ff', borderRadius: 3, transition: 'width 0.3s' }} />
+            </div>
           </div>
         </div>
       )}
@@ -5867,9 +6512,13 @@ export default function Viewer3D() {
           far: 200,
         }}
         gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
-        style={{ cursor: cameraMode === 'firstPerson' ? 'crosshair' : 'auto', touchAction: 'none' }}
+        style={{
+          cursor: clickToAddWaypoint ? 'crosshair' : cameraMode === 'firstPerson' ? 'crosshair' : 'auto',
+          touchAction: 'none',
+        }}
       >
         <Scene />
+        <SoraKeyframeCapturer />
       </Canvas>
       <div style={{
         position: 'absolute', top: 10, right: 10,
@@ -5895,6 +6544,7 @@ export default function Viewer3D() {
           <VirtualLookPad />
         </>
       )}
+      <SoraVideoModal />
     </div>
   )
 }

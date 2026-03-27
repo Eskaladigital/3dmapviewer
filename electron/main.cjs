@@ -339,6 +339,79 @@ Escribe en español. Sé exhaustivo. La descripción debe permitir reproducir el
     }
   })
 
+  // ─── Sora video generation ───
+
+  api.post('/generate-video', async (req, res) => {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) return res.status(503).json({ error: 'OPENAI_API_KEY no configurada' })
+    try {
+      const { image, prompt, seconds = '8', model = 'sora-2' } = req.body
+      if (!prompt) return res.status(400).json({ error: 'Falta el prompt' })
+      const body = {
+        model,
+        prompt,
+        seconds: String(seconds),
+        size: '1792x1024',
+      }
+      if (image) {
+        body.input_reference = { image_url: image }
+      }
+      const soraRes = await fetch('https://api.openai.com/v1/videos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(body),
+      })
+      const data = await soraRes.json()
+      if (!soraRes.ok) return res.status(soraRes.status).json({ error: data.error?.message || 'Error Sora' })
+      res.json({ jobId: data.id, status: data.status, progress: data.progress || 0 })
+    } catch (e) {
+      res.status(500).json({ error: String(e) })
+    }
+  })
+
+  api.get('/video-status/:jobId', async (req, res) => {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) return res.status(503).json({ error: 'OPENAI_API_KEY no configurada' })
+    try {
+      const soraRes = await fetch(`https://api.openai.com/v1/videos/${req.params.jobId}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      })
+      const data = await soraRes.json()
+      if (!soraRes.ok) return res.status(soraRes.status).json({ error: data.error?.message || 'Error Sora' })
+      res.json({
+        status: data.status,
+        progress: data.progress || 0,
+        error: data.error || null,
+        completedAt: data.completed_at || null,
+        expiresAt: data.expires_at || null,
+      })
+    } catch (e) {
+      res.status(500).json({ error: String(e) })
+    }
+  })
+
+  api.get('/video-download/:jobId', async (req, res) => {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) return res.status(503).json({ error: 'OPENAI_API_KEY no configurada' })
+    try {
+      const soraRes = await fetch(`https://api.openai.com/v1/videos/${req.params.jobId}/content`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      })
+      if (!soraRes.ok) {
+        const errText = await soraRes.text()
+        return res.status(soraRes.status).json({ error: errText })
+      }
+      res.set('Content-Type', soraRes.headers.get('content-type') || 'video/mp4')
+      const buffer = Buffer.from(await soraRes.arrayBuffer())
+      res.send(buffer)
+    } catch (e) {
+      res.status(500).json({ error: String(e) })
+    }
+  })
+
   return api
 }
 
